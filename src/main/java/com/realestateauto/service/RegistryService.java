@@ -14,13 +14,7 @@ public class RegistryService {
     }
 
     public void download(String address, String savePath, Consumer<String> logger) throws Exception {
-        IrosAutomation automation = new IrosAutomation(
-                config.get("iros.id"),
-                config.get("iros.password"),
-                config.get("iros.paymentPassword"),
-                savePath,
-                logger
-        );
+        IrosAutomation automation = new IrosAutomation(savePath, logger);
         automation.download(address);
     }
 }

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.realestateauto.controller.MainController"
+      spacing="12" style="-fx-padding: 20; -fx-background-color: #f5f5f5;">
+
+    <!-- 제목 -->
+    <Label text="부동산 서류 자동 다운로더"
+           style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+
+    <Separator/>
+
+    <!-- 주소 입력 -->
+    <VBox spacing="4">
+        <Label text="주소"/>
+        <TextField fx:id="addressField" promptText="예: 서울시 강남구 테헤란로 123"/>
+    </VBox>
+
+    <!-- 저장 위치 -->
+    <VBox spacing="4">
+        <Label text="저장 위치"/>
+        <HBox spacing="6">
+            <TextField fx:id="savePathField" HBox.hgrow="ALWAYS"/>
+            <Button text="폴더 선택" onAction="#onChoosePath"/>
+        </HBox>
+    </VBox>
+
+    <!-- 서류 선택 -->
+    <VBox spacing="4">
+        <Label text="받을 서류"/>
+        <HBox spacing="20">
+            <CheckBox fx:id="registryCheck" text="등기부등본" selected="true"/>
+            <CheckBox fx:id="buildingCheck" text="건축물대장" selected="true"/>
+        </HBox>
+    </VBox>
+
+    <!-- 다운로드 버튼 -->
+    <HBox spacing="10">
+        <Button fx:id="downloadBtn" text="선택 서류 다운로드"
+                onAction="#onDownload"
+                style="-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 8 20;"
+                HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+        <Button fx:id="serveBtn" text="써브 광고등록"
+                onAction="#onOpenServe"
+                style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 8 20;"/>
+    </HBox>
+
+    <Separator/>
+
+    <!-- 진행 로그 -->
+    <VBox spacing="4" VBox.vgrow="ALWAYS">
+        <Label text="진행상황"/>
+        <TextArea fx:id="logArea" editable="false" prefHeight="120"
+                  style="-fx-font-family: monospace; -fx-font-size: 12px;"/>
+    </VBox>
+
+    <Separator/>
+
+    <!-- 계정 설정 -->
+    <TitledPane text="계정 설정" expanded="false">
+        <VBox spacing="8" style="-fx-padding: 10;">
+            <Label text="인터넷등기소" style="-fx-font-weight: bold;"/>
+            <HBox spacing="6">
+                <TextField fx:id="irosIdField" promptText="아이디" HBox.hgrow="ALWAYS"/>
+                <PasswordField fx:id="irosPasswordField" promptText="비밀번호" HBox.hgrow="ALWAYS"/>
+                <PasswordField fx:id="irosPaymentField" promptText="결제비밀번호" HBox.hgrow="ALWAYS"/>
+            </HBox>
+
+            <Label text="정부24" style="-fx-font-weight: bold;"/>
+            <HBox spacing="6">
+                <TextField fx:id="gov24IdField" promptText="아이디" HBox.hgrow="ALWAYS"/>
+                <PasswordField fx:id="gov24PasswordField" promptText="비밀번호" HBox.hgrow="ALWAYS"/>
+            </HBox>
+
+            <Label text="부동산써브" style="-fx-font-weight: bold;"/>
+            <HBox spacing="6">
+                <TextField fx:id="serveIdField" promptText="아이디" HBox.hgrow="ALWAYS"/>
+                <PasswordField fx:id="servePasswordField" promptText="비밀번호" HBox.hgrow="ALWAYS"/>
+            </HBox>
+
+            <Button text="설정 저장" onAction="#onSaveConfig"
+                    style="-fx-background-color: #607D8B; -fx-text-fill: white;"/>
+        </VBox>
+    </TitledPane>
+
+</VBox>

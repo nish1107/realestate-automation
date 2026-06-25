@@ -1,6 +1,7 @@
 package com.realestateauto.config;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
 public class AppConfig {
@@ -15,8 +16,8 @@ public class AppConfig {
     private void load() {
         File file = new File(CONFIG_FILE);
         if (file.exists()) {
-            try (FileInputStream fis = new FileInputStream(file)) {
-                props.load(fis);
+            try (InputStreamReader isr = new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8)) {
+                props.load(isr);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -24,8 +25,8 @@ public class AppConfig {
     }
 
     public void save() {
-        try (FileOutputStream fos = new FileOutputStream(CONFIG_FILE)) {
-            props.store(fos, "부동산 자동화 설정");
+        try (OutputStreamWriter osw = new OutputStreamWriter(new FileOutputStream(CONFIG_FILE), StandardCharsets.UTF_8)) {
+            props.store(osw, "부동산 자동화 설정");
         } catch (IOException e) {
             e.printStackTrace();
         }

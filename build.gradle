@@ -35,6 +35,23 @@ application {
     mainClass = 'com.realestateauto.MainApp'
 }
 
+task checkLogin(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.realestateauto.CheckLoginPage'
+}
+
+task testRun(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.realestateauto.TestRun'
+    systemProperty 'file.encoding', 'UTF-8'
+}
+
+task testBuilding(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.realestateauto.TestBuilding'
+    systemProperty 'file.encoding', 'UTF-8'
+}
+
 jar {
     manifest {
         attributes 'Main-Class': 'com.realestateauto.MainApp'
@@ -43,4 +60,8 @@ jar {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    exclude 'META-INF/*.SF'
+    exclude 'META-INF/*.DSA'
+    exclude 'META-INF/*.RSA'
+    exclude 'META-INF/*.EC'
 }

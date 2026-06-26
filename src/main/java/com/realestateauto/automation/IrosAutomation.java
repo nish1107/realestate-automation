@@ -797,7 +797,19 @@ public class IrosAutomation {
     private boolean waitForTableData(ChromeDriver driver, int maxMs) throws InterruptedException {
         long end = System.currentTimeMillis() + (long)maxMs;
         while (System.currentTimeMillis() < end) {
-            Boolean found = (Boolean)driver.executeScript("var rows=document.querySelectorAll('tr');for(var i=0;i<rows.length;i++){  if(!rows[i].querySelector('td')) continue;  var btns=rows[i].querySelectorAll('a,button,span,div');  for(var j=0;j<btns.length;j++){    if(!btns[j].offsetParent) continue;    var t=(btns[j].innerText||'').trim();    if(t==='\uc5f4\ub78c'||t==='\uc5f4\ub78c\ucd9c\ub825'||t==='\ubc1c\uae09') return true;  }}return false;", new Object[0]);
+            Boolean found = (Boolean)driver.executeScript(
+                "var V=['\uc5f4\ub78c','\uc5f4\ub78c\ucd9c\ub825','\ubc1c\uae09','\ucd9c\ub825','\ud655\uc778','\uc5f4\ub78c\ud558\uae30','\ubb38\uc11c\uc5f4\ub78c'];" +
+                "var rows=document.querySelectorAll('tr');" +
+                "for(var i=0;i<rows.length;i++){" +
+                "  if(!rows[i].querySelector('td')) continue;" +
+                "  var els=rows[i].querySelectorAll('a,button,span,div,input[type=button]');" +
+                "  for(var j=0;j<els.length;j++){" +
+                "    if(!els[j].offsetParent) continue;" +
+                "    var t=els[j].tagName==='INPUT'?(els[j].value||'').trim():(els[j].innerText||'').trim();" +
+                "    if(V.indexOf(t)>=0) return true;" +
+                "  }" +
+                "}" +
+                "return false;", new Object[0]);
             if (Boolean.TRUE.equals(found)) {
                 return true;
             }
@@ -853,7 +865,30 @@ public class IrosAutomation {
         String dong = this.parseDong(aptUnit);
         String ho = this.parseHo(aptUnit);
         this.logger.accept("\uc2e0\uccad\uacb0\uacfc\uc5d0\uc11c \ub9e4\uce6d: \ub3d9=" + dong + " \ud638=" + ho);
-        Object viewResult = driver.executeScript("function fire(el){  ['mousedown','mouseup','click'].forEach(function(ev){    el.dispatchEvent(new MouseEvent(ev,{bubbles:true,cancelable:true,view:window}));  });}var dong=arguments[0], ho=arguments[1];var rows=document.querySelectorAll('tr');var firstBtn=null, firstRow='';for(var i=0;i<rows.length;i++){  if(!rows[i].querySelector('td')) continue;  var t=rows[i].innerText||'';  var btns=rows[i].querySelectorAll('a,button,span,div');  var viewBtn=null;  for(var j=0;j<btns.length;j++){    if(!btns[j].offsetParent) continue;    var bt=(btns[j].innerText||'').trim();    if(bt==='\uc5f4\ub78c'||bt==='\uc5f4\ub78c\ucd9c\ub825'||bt==='\ubc1c\uae09'){viewBtn=btns[j];break;}  }  if(!viewBtn) continue;  if(firstBtn===null){firstBtn=viewBtn; firstRow=t.substring(0,40);}  if(dong && ho && t.includes(dong+'\ub3d9') && t.includes(ho+'\ud638')){    fire(viewBtn); return '\ub9e4\uce6d\ud074\ub9ad:'+t.substring(0,50);  }}if(firstBtn){fire(firstBtn); return '\uccab\ud589\ud074\ub9ad:'+firstRow;}return false;", new Object[]{dong, ho});
+        Object viewResult = driver.executeScript(
+            "function fire(el){['mousedown','mouseup','click'].forEach(function(ev){el.dispatchEvent(new MouseEvent(ev,{bubbles:true,cancelable:true,view:window}));});}" +
+            "var V=['\uc5f4\ub78c','\uc5f4\ub78c\ucd9c\ub825','\ubc1c\uae09','\ucd9c\ub825','\ud655\uc778','\uc5f4\ub78c\ud558\uae30','\ubb38\uc11c\uc5f4\ub78c'];" +
+            "var dong=arguments[0], ho=arguments[1];" +
+            "var rows=document.querySelectorAll('tr');" +
+            "var firstBtn=null, firstRow='';" +
+            "for(var i=0;i<rows.length;i++){" +
+            "  if(!rows[i].querySelector('td')) continue;" +
+            "  var t=rows[i].innerText||'';" +
+            "  var els=rows[i].querySelectorAll('a,button,span,div,input[type=button]');" +
+            "  var viewBtn=null, anyEl=null;" +
+            "  for(var j=0;j<els.length;j++){" +
+            "    if(!els[j].offsetParent) continue;" +
+            "    var bt=els[j].tagName==='INPUT'?(els[j].value||'').trim():(els[j].innerText||'').trim();" +
+            "    if(V.indexOf(bt)>=0){viewBtn=els[j];break;}" +
+            "    if(anyEl===null&&(els[j].tagName==='A'||els[j].tagName==='BUTTON'||els[j].tagName==='INPUT')) anyEl=els[j];" +
+            "  }" +
+            "  var btn=viewBtn||anyEl;" +
+            "  if(!btn) continue;" +
+            "  if(firstBtn===null){firstBtn=btn; firstRow=t.substring(0,40);}" +
+            "  if(dong&&ho&&t.includes(dong+'\ub3d9')&&t.includes(ho+'\ud638')){fire(btn);return '\ub9e4\uce6d:'+(viewBtn?'\uc5f4\ub78c':'\uccab\uc694\uc18c')+':'+t.substring(0,50);}" +
+            "}" +
+            "if(firstBtn){fire(firstBtn); return '\uccab\ud589:'+firstRow;}" +
+            "return false;", new Object[]{dong, ho});
         boolean clicked = false;
         if (viewResult instanceof String) {
             this.logger.accept("\uc5f4\ub78c \ubc84\ud2bc \ud074\ub9ad: " + String.valueOf(viewResult));
@@ -906,10 +941,19 @@ public class IrosAutomation {
                 driver.switchTo().window(mainHandle);
                 break;
             }
-            boolean downloaded = this.waitForNewFile(this.savePath, filesBefore, 30000);
+            String downloaded = this.waitForNewFile(this.savePath, filesBefore, 30000);
             this.elapsed(tSave, "\uc800\uc7a5 \uc644\ub8cc");
-            if (downloaded) {
-                this.logger.accept("=== \ud30c\uc77c \ub2e4\uc6b4\ub85c\ub4dc \uc644\ub8cc: " + this.savePath + " ===");
+            if (downloaded != null) {
+                // \ud30c\uc77c\uba85\uc744 aptUnit \uc8fc\uc18c\ub85c \ubcc0\uacbd
+                String ext = downloaded.contains(".") ? downloaded.substring(downloaded.lastIndexOf('.')) : "";
+                String safeName = aptUnit.replaceAll("[\\\\/:*?\"<>|]", "_").trim();
+                File src = new File(this.savePath, downloaded);
+                File dst = new File(this.savePath, safeName + ext);
+                if (src.renameTo(dst)) {
+                    this.logger.accept("=== \ud30c\uc77c \uc800\uc7a5 \uc644\ub8cc: " + dst.getName() + " ===");
+                } else {
+                    this.logger.accept("=== \ud30c\uc77c \ub2e4\uc6b4\ub85c\ub4dc \uc644\ub8cc (\uc774\ub984 \ubcc0\uacbd \uc2e4\ud328): " + downloaded + " ===");
+                }
             } else {
                 this.logger.accept("=== \uc800\uc7a5 \uc644\ub8cc (\ud30c\uc77c \uc704\uce58 \ud655\uc778: " + this.savePath + ") ===");
             }
@@ -930,17 +974,17 @@ public class IrosAutomation {
         return files;
     }
 
-    private boolean waitForNewFile(String dir, Set<String> filesBefore, int maxMs) throws InterruptedException {
+    private String waitForNewFile(String dir, Set<String> filesBefore, int maxMs) throws InterruptedException {
         long end = System.currentTimeMillis() + (long)maxMs;
         while (System.currentTimeMillis() < end) {
             Thread.sleep(500L);
             for (String f : this.listDownloadedFiles(dir)) {
                 if (filesBefore.contains(f) || f.endsWith(".crdownload")) continue;
                 this.logger.accept("\uc0c8 \ud30c\uc77c: " + f);
-                return true;
+                return f;
             }
         }
-        return false;
+        return null;
     }
 
     private void handlePopup(ChromeDriver driver, String buttonText) {

@@ -1081,8 +1081,31 @@ public class Gov24Automation {
             logger.accept("폼 버튼목록: " + btnDebug);
         } catch (Exception ignored) {}
 
-        // 주소 검색 버튼 클릭 - XPath로 한글 버튼 탐색 (JS 인코딩 문제 회피)
-        // 대장구분 선택 (집합 or 일반)
+        // ── 주소구분 지번/도로명 선택 ──────────────────────────────────────────
+        if ("지번".equals(addressType)) {
+            try {
+                Boolean jibunClicked = (Boolean) ((JavascriptExecutor) driver).executeScript(
+                    "var inputs=document.querySelectorAll('input[type=radio]');" +
+                    "for(var i=0;i<inputs.length;i++){" +
+                    "  var lbl='';" +
+                    // 1) label[for=id] 탐색
+                    "  if(inputs[i].id){" +
+                    "    var lfor=document.querySelector('label[for=\"'+inputs[i].id+'\"]');" +
+                    "    if(lfor) lbl=lfor.textContent||'';" +
+                    "  }" +
+                    // 2) labels 컬렉션
+                    "  if(!lbl&&inputs[i].labels&&inputs[i].labels[0]) lbl=inputs[i].labels[0].textContent||'';" +
+                    // 3) nextSibling 텍스트 노드/요소 순회
+                    "  if(!lbl){var sib=inputs[i].nextSibling;while(sib){if(sib.textContent&&sib.textContent.trim()){lbl=sib.textContent;break;}sib=sib.nextSibling;}}" +
+                    "  if(lbl.trim()==='지번'){inputs[i].click(); return true;}" +
+                    "}" +
+                    "return false;");
+                logger.accept("지번 주소구분 선택: " + jibunClicked);
+                Thread.sleep(600);
+            } catch (Exception e) { logger.accept("지번 주소구분 선택 오류: " + e.getMessage()); }
+        }
+
+        // ── 대장구분 선택 (집합 or 일반) ──────────────────────────────────────
         try {
             Boolean gubunClicked = (Boolean) ((JavascriptExecutor) driver).executeScript(
                 "var target=arguments[0];" +
@@ -1290,38 +1313,9 @@ public class Gov24Automation {
             }
         } else if (addrBtnClicked) {
             logger.accept("주소 검색 버튼 클릭됨 (인페이지 팝업)");
-            Thread.sleep(500);
+            Thread.sleep(1200);
             saveScreenshot(driver, "gov24_addr_popup_inpage");
-            WebElement popupInput = findFirstVisibleInput(driver);
-            if (popupInput != null) {
-                try {
-                    popupInput.clear();
-                    popupInput.sendKeys(parts.buildingAddress);
-                    popupInput.sendKeys(Keys.ENTER);
-                    Thread.sleep(2000);
-                    saveScreenshot(driver, "gov24_addr_popup_result");
-                    ((JavascriptExecutor) driver).executeScript(
-                        "var rows=document.querySelectorAll('tr,li,.result-item,.result,.item');" +
-                        "var dong=arguments[0];" +
-                        "for(var i=0;i<rows.length;i++){" +
-                        "  var links=rows[i].querySelectorAll('a,button');" +
-                        "  if(!links.length)continue;" +
-                        "  var r=links[0].getBoundingClientRect();" +
-                        "  if(r.width===0||r.height===0)continue;" +
-                        "  var t=(rows[i].textContent||'').trim();" +
-                        "  if(dong&&t.includes(dong)){links[0].click();return;}" +
-                        "}" +
-                        "for(var i=0;i<rows.length;i++){" +
-                        "  var links=rows[i].querySelectorAll('a,button');" +
-                        "  if(!links.length)continue;" +
-                        "  var r=links[0].getBoundingClientRect();" +
-                        "  if(r.width>0&&r.height>0){links[0].click();return;}" +
-                        "}", parts.dong);
-                    Thread.sleep(1500);
-                } catch (Exception e) {
-                    logger.accept("인페이지 팝업 처리 오류: " + e.getMessage());
-                }
-            }
+            handleInPageAddressPopup(driver, parts);
         } else {
             logger.accept("주소검색 버튼 없음 - 직접 입력 시도");
             WebElement addrInput = findVisibleInput(driver, "주소", "addr", "address", "소재지", "지번", "로명");
@@ -1357,62 +1351,17 @@ public class Gov24Automation {
         logger.accept("주소 입력 후 URL: " + driver.getCurrentUrl());
         logger.accept("주소 입력 후 버튼: " + getVisibleButtonTexts(driver));
 
-        // 동/호 드롭다운 선택 (건물번호검색 팝업 선택 후 폼에 자동입력된 후)
-        if (!parts.dong.isEmpty()) {
-            try {
-                List<WebElement> selects = driver.findElements(By.tagName("select"));
-                for (WebElement sel : selects) {
-                    try {
-                        if (!sel.isDisplayed()) continue;
-                        org.openqa.selenium.support.ui.Select selectEl = new org.openqa.selenium.support.ui.Select(sel);
-                        List<WebElement> options = selectEl.getOptions();
-                        for (WebElement opt : options) {
-                            String optText = opt.getText().replaceAll("[^0-9]", "");
-                            if (optText.equals(parts.dong)) {
-                                selectEl.selectByVisibleText(opt.getText());
-                                logger.accept("동 선택: " + opt.getText());
-                                Thread.sleep(700);
-                                break;
-                            }
-                        }
-                    } catch (Exception ignored) {}
-                }
-            } catch (Exception e) { logger.accept("동 선택 오류: " + e.getMessage()); }
-        }
+        // ── 건물동명칭 검색 → 선택 ─────────────────────────────────────────────
+        Thread.sleep(600);
+        saveScreenshot(driver, "gov24_before_dong_search");
+        clickBuildingDongSearchAndSelect(driver);
+
+        // ── 호명칭 검색 → 선택 ────────────────────────────────────────────────
         if (!parts.ho.isEmpty()) {
-            try {
-                List<WebElement> selects = driver.findElements(By.tagName("select"));
-                for (WebElement sel : selects) {
-                    try {
-                        if (!sel.isDisplayed()) continue;
-                        org.openqa.selenium.support.ui.Select selectEl = new org.openqa.selenium.support.ui.Select(sel);
-                        List<WebElement> options = selectEl.getOptions();
-                        for (WebElement opt : options) {
-                            String optText = opt.getText().replaceAll("[^0-9]", "");
-                            if (optText.equals(parts.ho)) {
-                                selectEl.selectByVisibleText(opt.getText());
-                                logger.accept("호 선택: " + opt.getText());
-                                Thread.sleep(700);
-                                break;
-                            }
-                        }
-                    } catch (Exception ignored) {}
-                }
-            } catch (Exception e) { logger.accept("호 선택 오류: " + e.getMessage()); }
+            Thread.sleep(600);
+            clickHoSearchAndSelect(driver, parts.ho);
         }
-        // 검색 버튼 클릭 (동/호 선택 후)
-        try {
-            List<WebElement> searchBtns = driver.findElements(By.xpath(
-                "//button[normalize-space(.)='검색'] | //input[@type='button' and @value='검색'] | //input[@type='submit' and @value='검색']"));
-            for (WebElement sb : searchBtns) {
-                if (sb.isDisplayed()) {
-                    sb.click();
-                    logger.accept("검색 버튼 클릭");
-                    Thread.sleep(1500);
-                    break;
-                }
-            }
-        } catch (Exception ignored) {}
+
         saveScreenshot(driver, "gov24_before_submit");
         logger.accept("신청 전 버튼: " + getVisibleButtonTexts(driver));
 
@@ -1782,6 +1731,152 @@ public class Gov24Automation {
             return hoClick != null && hoClick.startsWith("ok:");
         } catch (Exception e) { logger.accept("팝업 호 선택 오류: " + e.getMessage()); }
         return false;
+    }
+
+    private void handleInPageAddressPopup(ChromeDriver driver, AddressParts parts) throws InterruptedException {
+        // readonly/disabled 제외한 편집 가능한 입력 필드만 수집
+        List<WebElement> editableInputs = getEditableInputs(driver);
+        logger.accept("인페이지 팝업 편집가능 필드 수: " + editableInputs.size());
+
+        if ("지번".equals(addressType)) {
+            // 지번 탭 클릭 시도 (팝업 내)
+            clickAddressTypeTab(driver, "지번");
+            Thread.sleep(500);
+            // 탭 클릭 후 재수집
+            editableInputs = getEditableInputs(driver);
+            logger.accept("탭 클릭 후 편집가능 필드 수: " + editableInputs.size());
+
+            if (editableInputs.size() >= 2) {
+                WebElement beonjieField = null, hoField = null;
+                for (WebElement el : editableInputs) {
+                    String hint = (nvl(el.getAttribute("placeholder")) + " " + nvl(el.getAttribute("id")) + " " + nvl(el.getAttribute("name"))).toLowerCase();
+                    if (beonjieField == null && (hint.contains("번지") || hint.contains("bon") || hint.contains("main") || hint.contains("num"))) {
+                        beonjieField = el;
+                    } else if (hoField == null && (hint.contains("호") && !hint.contains("번지"))) {
+                        hoField = el;
+                    }
+                }
+                if (beonjieField == null) beonjieField = editableInputs.get(0);
+                if (hoField == null && editableInputs.size() >= 2) hoField = editableInputs.get(1);
+
+                try { beonjieField.clear(); beonjieField.sendKeys(parts.jibunMain); logger.accept("번지 입력: " + parts.jibunMain); } catch (Exception e) { logger.accept("번지 입력 오류: " + e.getMessage()); }
+                if (hoField != null && !"0".equals(parts.jibunSub) && !parts.jibunSub.isEmpty()) {
+                    try { hoField.clear(); hoField.sendKeys(parts.jibunSub); logger.accept("부번 입력: " + parts.jibunSub); } catch (Exception e) { logger.accept("부번 입력 오류: " + e.getMessage()); }
+                }
+            } else if (!editableInputs.isEmpty()) {
+                try { editableInputs.get(0).clear(); editableInputs.get(0).sendKeys(parts.jibunMain); logger.accept("번지 단일 입력: " + parts.jibunMain); } catch (Exception e) { logger.accept("번지 단일 입력 오류: " + e.getMessage()); }
+            } else {
+                logger.accept("인페이지 팝업 입력 필드 없음");
+                return;
+            }
+        } else {
+            if (!editableInputs.isEmpty()) {
+                try { editableInputs.get(0).clear(); editableInputs.get(0).sendKeys(parts.buildingAddress); logger.accept("도로명 팝업 입력: " + parts.buildingAddress); } catch (Exception e) { logger.accept("도로명 팝업 입력 오류: " + e.getMessage()); }
+            } else {
+                logger.accept("도로명 팝업 입력 필드 없음");
+                return;
+            }
+        }
+
+        clickPopupSearchButton(driver);
+        Thread.sleep(2000);
+        saveScreenshot(driver, "gov24_addr_popup_result");
+
+        // 결과 행 선택 (onclick 속성 행 또는 tbody a 링크 우선 — 헤더/네비 tr 제외)
+        try {
+            ((JavascriptExecutor) driver).executeScript(
+                "var items=document.querySelectorAll('tr[onclick],td[onclick],li[onclick],table a,tbody a');" +
+                "for(var i=0;i<items.length;i++){" +
+                "  var r=items[i].getBoundingClientRect();" +
+                "  if(r.width>0&&r.height>0){items[i].click();return;}" +
+                "}");
+            logger.accept("인페이지 팝업 결과 선택 완료");
+            Thread.sleep(1200);
+        } catch (Exception e) {
+            logger.accept("인페이지 팝업 결과 선택 오류: " + e.getMessage());
+        }
+    }
+
+    private List<WebElement> getEditableInputs(ChromeDriver driver) {
+        List<WebElement> result = new ArrayList<>();
+        try {
+            List<WebElement> all = driver.findElements(By.cssSelector("input[type=text],input[type=search],input:not([type])"));
+            for (WebElement el : all) {
+                try {
+                    if (!el.isDisplayed() || !el.isEnabled()) continue;
+                    String ro = el.getAttribute("readonly");
+                    String dis = el.getAttribute("disabled");
+                    if ("true".equalsIgnoreCase(ro) || "readonly".equalsIgnoreCase(ro)) continue;
+                    if ("true".equalsIgnoreCase(dis) || "disabled".equalsIgnoreCase(dis)) continue;
+                    result.add(el);
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception ignored) {}
+        return result;
+    }
+
+    private void clickBuildingDongSearchAndSelect(ChromeDriver driver) throws InterruptedException {
+        try {
+            // 건물동명칭/호명칭 검색 버튼은 <button>태그, 기본주소 검색은 <input type="button"> — button만 선택
+            List<WebElement> btns = driver.findElements(By.xpath("//button[normalize-space(.)='검색']"));
+            for (WebElement btn : btns) {
+                if (!btn.isDisplayed()) continue;
+                ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block:'center'});", btn);
+                Thread.sleep(200);
+                btn.click();
+                logger.accept("건물동명칭 검색 클릭");
+                break;
+            }
+        } catch (Exception e) { logger.accept("건물동명칭 검색 클릭 오류: " + e.getMessage()); return; }
+        Thread.sleep(1000);
+        saveScreenshot(driver, "gov24_dong_search_result");
+        try {
+            String result = (String) ((JavascriptExecutor) driver).executeScript(
+                "var items=document.querySelectorAll('tr[onclick],td[onclick],li[onclick],table a,tbody a');" +
+                "for(var i=0;i<items.length;i++){" +
+                "  var rc=items[i].getBoundingClientRect();" +
+                "  if(rc.width>0&&rc.height>0){items[i].click();return 'ok:'+(items[i].textContent||'').trim().substring(0,20);}" +
+                "}" +
+                "return 'not_found';");
+            logger.accept("건물동명칭 결과 선택: " + result);
+            Thread.sleep(800);
+        } catch (Exception e) { logger.accept("건물동명칭 결과 선택 오류: " + e.getMessage()); }
+    }
+
+    private void clickHoSearchAndSelect(ChromeDriver driver, String ho) throws InterruptedException {
+        try {
+            // <button>태그 검색 버튼만 — 첫 번째=건물동명칭, 두 번째=호명칭
+            List<WebElement> btns = driver.findElements(By.xpath("//button[normalize-space(.)='검색']"));
+            boolean skipFirst = true;
+            for (WebElement btn : btns) {
+                if (!btn.isDisplayed()) continue;
+                if (skipFirst) { skipFirst = false; continue; } // 건물동명칭용 첫 검색 버튼 건너뜀
+                ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block:'center'});", btn);
+                Thread.sleep(200);
+                btn.click();
+                logger.accept("호명칭 검색 클릭");
+                break;
+            }
+        } catch (Exception e) { logger.accept("호명칭 검색 클릭 오류: " + e.getMessage()); return; }
+        Thread.sleep(1000);
+        saveScreenshot(driver, "gov24_ho_search_result");
+        try {
+            String result = (String) ((JavascriptExecutor) driver).executeScript(
+                "var ho=arguments[0];" +
+                "var items=document.querySelectorAll('tr[onclick],td[onclick],li[onclick],table a,tbody a');" +
+                "for(var i=0;i<items.length;i++){" +
+                "  var t=(items[i].textContent||'').trim();" +
+                "  var rc=items[i].getBoundingClientRect();" +
+                "  if(rc.width>0&&rc.height>0&&(t===ho+'호'||t.includes(ho+'호'))){items[i].click();return 'ok:'+t.substring(0,20);}" +
+                "}" +
+                "for(var i=0;i<items.length;i++){" +
+                "  var rc=items[i].getBoundingClientRect();" +
+                "  if(rc.width>0&&rc.height>0){items[i].click();return 'fallback:'+(items[i].textContent||'').trim().substring(0,20);}" +
+                "}" +
+                "return 'not_found';", ho);
+            logger.accept("호명칭 결과 선택: " + result);
+            Thread.sleep(800);
+        } catch (Exception e) { logger.accept("호명칭 결과 선택 오류: " + e.getMessage()); }
     }
 
     private String nvl(String s) { return s != null ? s : ""; }

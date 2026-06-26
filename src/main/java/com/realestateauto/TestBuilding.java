@@ -5,8 +5,9 @@ import com.realestateauto.service.BuildingService;
 
 public class TestBuilding {
     public static void main(String[] args) throws Exception {
-        String address = "탑실로 152 203동 102호";
+        String address = "방이동 42-1 101호";
         AppConfig config = new AppConfig();
+        config.set("gov24.addressType", "지번");
         String savePath = config.get("savePath").isEmpty()
             ? System.getProperty("user.home") + "\\Desktop\\부동산서류"
             : config.get("savePath");

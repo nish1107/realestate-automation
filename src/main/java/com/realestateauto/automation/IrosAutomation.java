@@ -511,7 +511,7 @@ public class IrosAutomation {
         Thread.sleep(300L);
         this.elapsed(tNext2, "\ub2e4\uc74c(2) \ud398\uc774\uc9c0 \uc804\ud658");
         this.logger.accept("\ubc1c\uae09 \uc2e0\uccad \ud654\uba74 URL: " + driver.getCurrentUrl());
-        this.handleIssuancePage(driver, wait, aptUnit);
+        this.handleIssuancePage(driver, wait, aptUnit, address);
     }
 
     private String parseDong(String aptUnit) {
@@ -577,7 +577,7 @@ public class IrosAutomation {
     /*
      * Enabled aggressive block sorting
      */
-    private void handleIssuancePage(ChromeDriver driver, WebDriverWait wait, String aptUnit) throws InterruptedException {
+    private void handleIssuancePage(ChromeDriver driver, WebDriverWait wait, String aptUnit, String address) throws InterruptedException {
         String prev;
         long t;
         this.logger.accept("=== \uc5f4\ub78c\u00b7\ubc1c\uae09 \uc2e0\uccad \ud750\ub984 \uc2dc\uc791 ===");
@@ -643,12 +643,12 @@ public class IrosAutomation {
             } else {
                 this.waitForText(driver, 6000, "\uc2e0\uccad\uacb0\uacfc", "\ubbf8\uc5f4\ub78c", "\uc7ac\uc5f4\ub78c", "\uc5f4\ub78c\uac00\ub2a5");
             }
-            this.handlePostPaymentView(driver, aptUnit);
+            this.handlePostPaymentView(driver, aptUnit, address);
             return;
         }
         if (!this.paymentAccount.isEmpty()) {
             this.handlePrepaidPayment(driver);
-            this.handlePostPaymentView(driver, aptUnit);
+            this.handlePostPaymentView(driver, aptUnit, address);
             return;
         }
         this.logger.accept("\uc120\ubd88 \uacc4\uc815\ubc88\ud638 \ubbf8\uc124\uc815. \uacc4\uc815 \uc124\uc815\uc5d0\uc11c \uc785\ub825 \ud6c4 \uc800\uc7a5\ud574\uc8fc\uc138\uc694.");
@@ -818,7 +818,7 @@ public class IrosAutomation {
         return false;
     }
 
-    private void handlePostPaymentView(ChromeDriver driver, String aptUnit) throws InterruptedException {
+    private void handlePostPaymentView(ChromeDriver driver, String aptUnit, String address) throws InterruptedException {
         Boolean hasQueryBtn;
         this.logger.accept("=== \uc5f4\ub78c \ub2e8\uacc4 \uc2dc\uc791 ===");
         Thread.sleep(1000L);
@@ -946,7 +946,7 @@ public class IrosAutomation {
             if (downloaded != null) {
                 // \ud30c\uc77c\uba85\uc744 aptUnit \uc8fc\uc18c\ub85c \ubcc0\uacbd
                 String ext = downloaded.contains(".") ? downloaded.substring(downloaded.lastIndexOf('.')) : "";
-                String safeName = aptUnit.replaceAll("[\\\\/:*?\"<>|]", "_").trim();
+                String safeName = address.replaceAll("[\\\\/:*?\"<>|]", "_").trim();
                 File src = new File(this.savePath, downloaded);
                 File dst = new File(this.savePath, safeName + ext);
                 if (src.renameTo(dst)) {

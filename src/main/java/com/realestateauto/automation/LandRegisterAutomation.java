@@ -53,6 +53,10 @@ public class LandRegisterAutomation {
 
         String profileDir = System.getProperty("user.home") + "/gov24-chrome-profile";
         new File(profileDir).mkdirs();
+        for (String lockFile : new String[]{"SingletonLock", "SingletonSocket", "SingletonCookie"}) {
+            File lf = new File(profileDir + "/" + lockFile);
+            if (lf.exists()) { lf.delete(); logger.accept("[Chrome] 락파일 정리: " + lockFile); }
+        }
         options.addArguments("--user-data-dir=" + profileDir);
 
         ChromeDriver driver = new ChromeDriver(options);

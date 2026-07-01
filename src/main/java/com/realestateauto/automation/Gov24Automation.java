@@ -17,13 +17,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 세움터(eais.go.kr)에서 건축물대장 자동 다운로드.
- * 로그인 필요 → 자동 로그인 시도 후 실패 시 수동 로그인 대기.
+ * 정부24(gov.kr)에서 건축물대장 자동 다운로드.
  * 주소 형식: "탑실로 152 203동 102호"
  */
 public class Gov24Automation {
 
-    private static final String EAIS_URL = "https://www.eais.go.kr";
     private static final String GOV24_URL = "https://www.gov.kr";
 
     private final String id;
@@ -90,213 +88,6 @@ public class Gov24Automation {
         } finally {
             if (driver != null) { try { driver.quit(); } catch (Exception ignored) {} }
         }
-    }
-
-    // ─── 세움터(eais.go.kr) ─────────────────────────────────────────────
-
-    private boolean tryEais(ChromeDriver driver, AddressParts parts) throws InterruptedException {
-        try {
-            logger.accept("세움터(건축행정시스템) 접속 중...");
-            driver.get(EAIS_URL);
-            waitForText(driver, 10000, "세움터", "건축물", "로그인", "민원");
-
-            // 팝업 2번 닫기 (delayed popup 대비)
-            dismissPopups(driver);
-            Thread.sleep(800);
-            dismissPopups(driver);
-            Thread.sleep(500);
-            saveScreenshot(driver, "01_eais_home");
-
-            String pageText = getPageText(driver);
-            // 서비스 완전 중단만 체크 (future maintenance 공지는 무시)
-            if (pageText.contains("서비스를 이용") && pageText.contains("일시 중지")) {
-                logger.accept("세움터 서비스 중단 - 정부24로 전환");
-                return false;
-            }
-
-            // 건축물대장 메뉴 클릭 (로그인 여부 무관)
-            logger.accept("건축물대장 메뉴 탐색...");
-            boolean menuClicked = clickLinkByText(driver, "건축물대장");
-            if (!menuClicked) {
-                // GNB 메뉴에서 찾기
-                menuClicked = (Boolean) ((JavascriptExecutor) driver).executeScript(
-                    "var menus = document.querySelectorAll('nav a, header a, .gnb a, .lnb a, .menu a, ul li a');" +
-                    "for (var i = 0; i < menus.length; i++) {" +
-                    "  var a = menus[i];" +
-                    "  var rect = a.getBoundingClientRect();" +
-                    "  if (rect.width > 0 && (a.innerText||'').includes('건축물')) {" +
-                    "    a.click(); return true;" +
-                    "  }" +
-                    "}" +
-                    "return false;");
-            }
-            logger.accept("건축물대장 메뉴 클릭: " + menuClicked);
-            Thread.sleep(2000);
-            dismissPopups(driver);
-            Thread.sleep(500);
-            saveScreenshot(driver, "02_eais_building_page");
-            pageText = getPageText(driver);
-
-            // 로그인 선택 페이지 감지 (건축물대장발급 - 회원/비회원 선택)
-            if (pageText.contains("회원 발급") || pageText.contains("비회원 발급") || pageText.contains("로그인 유형")) {
-                logger.accept("세움터 건축물대장 발급 페이지 - 로그인 처리 중...");
-                boolean loggedIn = doEaisLogin(driver);
-                if (!loggedIn) {
-                    logger.accept("세움터 로그인 실패 - 정부24로 전환");
-                    return false;
-                }
-                logger.accept("세움터 로그인 완료");
-                // 로그인 후 건축물대장 발급 페이지 재이동
-                Thread.sleep(1500);
-                dismissPopups(driver);
-                driver.get(EAIS_URL + "/buld/R00BRLT001L0.do");
-                Thread.sleep(2000);
-                dismissPopups(driver);
-                saveScreenshot(driver, "02e_building_after_login");
-                pageText = getPageText(driver);
-            }
-
-            // 건축물대장 주소 검색 페이지 확인
-            if (pageText.contains("소재지") || pageText.contains("지번") || pageText.contains("건물 검색")
-                    || pageText.contains("건축물대장") || pageText.contains("대장 발급")) {
-                logger.accept("건축물대장 주소 검색 중...");
-                return searchEais(driver, parts);
-            }
-
-            // 메뉴 재클릭 시도
-            logger.accept("건축물대장 메뉴 재탐색...");
-            clickLinkByText(driver, "건축물대장");
-            Thread.sleep(2000);
-            dismissPopups(driver);
-            saveScreenshot(driver, "02f_menu_retry");
-            pageText = getPageText(driver);
-            if (pageText.contains("소재지") || pageText.contains("지번") || pageText.contains("건축물대장")) {
-                return searchEais(driver, parts);
-            }
-
-            logger.accept("세움터 건축물대장 검색 페이지 접근 실패");
-            return false;
-
-        } catch (Exception e) {
-            logger.accept("세움터 오류: " + e.getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * 세움터 로그인: 건축물대장발급 선택 페이지에서 호출됨.
-     * "로그인 하기" → 정부통합로그인 페이지 → "아이디 로그인" → ID/PW 입력
-     */
-    private boolean doEaisLogin(ChromeDriver driver) throws InterruptedException {
-        boolean loginBtnClicked = clickButtonByText(driver, "로그인 하기");
-        logger.accept("로그인 하기 클릭: " + loginBtnClicked);
-        Thread.sleep(2000);
-
-        // 브라우저 alert 닫기 (보안모듈 알림)
-        dismissBrowserAlert(driver);
-
-        // 보안프로그램 오버레이 소멸 대기 (최대 12초 폴링)
-        logger.accept("보안프로그램 오버레이 소멸 대기...");
-        for (int i = 0; i < 24; i++) {
-            Thread.sleep(500);
-            dismissBrowserAlert(driver);
-            String bodyText = getPageText(driver);
-            if (bodyText.contains("아이디 로그인") && !bodyText.contains("보안프로그램이 로딩중")) {
-                logger.accept("오버레이 소멸 확인 (" + ((i + 1) * 500) + "ms)");
-                break;
-            }
-        }
-        Thread.sleep(300);
-        saveScreenshot(driver, "02b_eais_login_page");
-
-        // "아이디 로그인" 클릭 (다중 전략)
-        String eaisMainHandle = driver.getWindowHandle();
-        boolean idLoginClicked = clickIdLoginCard(driver, "세움터");
-        logger.accept("아이디 로그인 클릭: " + idLoginClicked);
-        Thread.sleep(2500);
-        dismissBrowserAlert(driver);
-
-        // 새 창 확인 (아이디 로그인이 팝업/새탭으로 열리는 경우)
-        Set<String> eaisWins = driver.getWindowHandles();
-        logger.accept("창 개수: " + eaisWins.size() + ", 현재URL: " + driver.getCurrentUrl());
-        if (eaisWins.size() > 1) {
-            for (String h : eaisWins) {
-                if (!h.equals(eaisMainHandle)) {
-                    logger.accept("새 창 감지 - 아이디 로그인 폼 창으로 전환");
-                    driver.switchTo().window(h);
-                    Thread.sleep(1500);
-                    dismissBrowserAlert(driver);
-                    logger.accept("새 창 URL: " + driver.getCurrentUrl());
-                    break;
-                }
-            }
-        } else {
-            Thread.sleep(500);
-        }
-        saveScreenshot(driver, "02c_eais_id_login_form");
-
-        // ID/PW 입력 시도
-        if (!id.isEmpty() && !password.isEmpty()) {
-            try {
-                WebElement idInput = findVisibleInput(driver, "아이디", "id", "userid", "loginId", "memberId");
-                if (idInput != null) {
-                    idInput.clear();
-                    idInput.sendKeys(id);
-                    Thread.sleep(200);
-                }
-                List<WebElement> pwInputs = driver.findElements(By.cssSelector("input[type=password]"));
-                for (WebElement el : pwInputs) {
-                    if (el.isDisplayed()) {
-                        el.clear();
-                        el.sendKeys(password);
-                        Thread.sleep(200);
-                        el.sendKeys(Keys.ENTER);
-                        break;
-                    }
-                }
-                Thread.sleep(2000);
-                dismissBrowserAlert(driver);
-                // 로그인 실패 모달("아이디 또는 비밀번호를 확인바랍니다") 닫기
-                dismissPopups(driver);
-                Thread.sleep(500);
-                saveScreenshot(driver, "02d_after_auto_login");
-                String afterLoginText = getPageText(driver);
-                if (afterLoginText.contains("아이디 또는 비밀번호") || afterLoginText.contains("비밀번호를 확인")) {
-                    logger.accept("세움터 로그인 실패: 아이디/비밀번호 오류 - 정부24로 전환");
-                    return false;
-                }
-                // 모든 창 확인 (로그인 성공 후 원래 창으로 돌아왔을 수 있음)
-                for (String h : driver.getWindowHandles()) {
-                    driver.switchTo().window(h);
-                    if (isLoggedIn(driver)) return true;
-                    String text = getPageText(driver);
-                    if (text.contains("소재지") || text.contains("지번") || text.contains("대장 발급")
-                            || (text.contains("건축물") && text.contains("주소"))) {
-                        return true;
-                    }
-                }
-            } catch (Exception e) {
-                logger.accept("세움터 자동 로그인 실패: " + e.getMessage());
-            }
-        }
-
-        // 수동 로그인 대기 (1분 - EAIS 계정이 있는 경우만 유용)
-        logger.accept("━━━━━━━━━━━━━━━━━━━━━━━━");
-        logger.accept("세움터 수동 로그인 대기 (최대 1분)");
-        logger.accept("세움터 계정이 있으면 로그인해주세요. 없으면 잠시 후 정부24로 자동 전환됩니다.");
-        logger.accept("━━━━━━━━━━━━━━━━━━━━━━━━");
-        for (int i = 0; i < 12; i++) {
-            Thread.sleep(5000);
-            dismissBrowserAlert(driver);
-            dismissPopups(driver);
-            if (isLoggedIn(driver)) return true;
-            String text = getPageText(driver);
-            if (text.contains("소재지") || text.contains("지번") || text.contains("건물 검색")
-                    || (text.contains("건축물") && text.contains("주소"))) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /** 브라우저 native alert (공인인증서 모듈 알림 등) 닫기 */
@@ -434,69 +225,6 @@ public class Gov24Automation {
 
         logger.accept("[" + site + "] 모든 클릭 방법 실패");
         return false;
-    }
-
-    private boolean searchEais(ChromeDriver driver, AddressParts parts) throws InterruptedException {
-        String searchAddr = parts.buildingAddress;
-
-        // 주소 입력 필드 찾기 (sendKeys 방식)
-        WebElement addrInput = findVisibleInput(driver, "주소", "건물", "addr", "address", "소재지", "지번");
-        if (addrInput != null) {
-            addrInput.clear();
-            addrInput.sendKeys(searchAddr);
-            Thread.sleep(300);
-            addrInput.sendKeys(Keys.ENTER);
-            logger.accept("주소 입력: " + searchAddr);
-        } else {
-            // 주소 검색 버튼 클릭 시도
-            boolean popupOpened = clickButtonByText(driver, "주소검색", "주소 검색", "주소찾기", "검색");
-            if (popupOpened) {
-                Thread.sleep(1500);
-                handleAddressPopup(driver, searchAddr);
-            } else {
-                logger.accept("주소 입력 필드 없음 - 페이지 소스 확인");
-                saveScreenshot(driver, "03_no_input");
-                return false;
-            }
-        }
-
-        Thread.sleep(2000);
-        waitForText(driver, 8000, "건축물대장", "호", "동", "선택", "결과", "목록");
-        saveScreenshot(driver, "03_search_result");
-        String resultText = getPageText(driver);
-        logger.accept("검색결과: " + resultText.substring(0, Math.min(200, resultText.length())).replaceAll("\\s+", " "));
-
-        // 결과에서 동/호 매칭
-        String resultClick = (String) ((JavascriptExecutor) driver).executeScript(
-            "var dong = arguments[0], ho = arguments[1];" +
-            "var rows = document.querySelectorAll('tr, li, .result-item, .list-item');" +
-            "var firstBtn = null;" +
-            "for (var i = 0; i < rows.length; i++) {" +
-            "  var t = (rows[i].innerText || '').trim();" +
-            "  if (!t) continue;" +
-            "  var btns = rows[i].querySelectorAll('a, button');" +
-            "  if (btns.length === 0) continue;" +
-            "  var rect = btns[0].getBoundingClientRect();" +
-            "  if (rect.width === 0) continue;" +
-            "  if (firstBtn === null) firstBtn = btns[0];" +
-            "  if (dong && ho && t.includes(dong + '동') && t.includes(ho + '호')) {" +
-            "    btns[0].click(); return '매칭:' + t.substring(0, 40);" +
-            "  }" +
-            "}" +
-            "if (firstBtn) { firstBtn.click(); return '첫번째결과'; }" +
-            "return 'notfound';",
-            parts.dong, parts.ho);
-        logger.accept("결과 선택: " + resultClick);
-
-        if ("notfound".equals(resultClick)) {
-            saveScreenshot(driver, "03_notfound");
-            logger.accept("검색 결과 없음");
-            return false;
-        }
-
-        Thread.sleep(2000);
-        saveScreenshot(driver, "04_after_select");
-        return downloadOrPrint(driver);
     }
 
     // ─── 정부24(gov.kr) ──────────────────────────────────────────────────
@@ -1822,7 +1550,7 @@ public class Gov24Automation {
 
         // 결과 클릭: 자식 요소 우선 + React props + native click 다층 전략
         String agencyClicked = (String) ((JavascriptExecutor) driver).executeScript(
-            "var jd=arguments[0];" +
+            "var jd=arguments[0]; var st=arguments[1];" +
             // 헬퍼: React onClick 직접 호출
             "function reactClick(el){" +
             "  var keys=Object.getOwnPropertyNames(el);" +
@@ -1863,13 +1591,13 @@ public class Gov24Automation {
             "      if(rc.width<5||rc.height<5)continue;" +
             "      var t=(el.textContent||'').replace(/\\s+/g,' ').trim();" +
             "      if(t.includes('목록닫기')||t.includes('검색'))continue;" +
-            "      if((t.includes('서울')&&t.includes('송파'))||t.includes(jd)){" +
+            "      if(t.includes(st)||t.includes(jd)){" +
             "        return tryClick(el);" +
             "      }" +
             "    }" +
             "  }" +
             "}" +
-            // Pass 2: 전체 DOM에서 서울 + 구/동 패턴 찾기 - a,li 태그 우선
+            // Pass 2: 전체 DOM에서 jibunDong/searchTerm 패턴 찾기 - a,li 태그 우선
             "var prio=['a','li','button','td','tr','div'];" +
             "for(var p=0;p<prio.length;p++){" +
             "  var els=document.querySelectorAll(prio[p]);" +
@@ -1882,12 +1610,12 @@ public class Gov24Automation {
             "    if(t.includes('닫기')||t.includes('검색')||t.includes('목록닫기'))continue;" +
             "    var nm=el.getAttribute('name')||'';" +
             "    if(nm.includes('datLnkBtn')||nm.includes('bldgAddrBtn'))continue;" +
-            "    if(t.includes('서울')&&(t.includes('송파')||t.includes(jd))){" +
+            "    if(t.includes(st)||t.includes(jd)){" +
             "      return tryClick(el);" +
             "    }" +
             "  }" +
             "}" +
-            "return 'not_found';", jibunDongFinal);
+            "return 'not_found';", jibunDongFinal, searchTerm);
         logger.accept("처리기관 선택(1단계-주소): " + agencyClicked);
         Thread.sleep(2000);
         saveScreenshot(driver, "gov24_after_addr_select");
@@ -2702,7 +2430,11 @@ public class Gov24Automation {
                         }
                         try { driver.switchTo().window(mainHandle); } catch (Exception ignored2) {}
                     }
-                    logger.accept("건축물대장 다운로드 완료. pdfSaved=" + pdfSaved);
+                    if (!pdfSaved && viewerHandle != null) {
+                        logger.accept("건축물대장 뷰어 열림. PDF 자동저장 실패 - dbg_gov24_download_tab.png 확인");
+                        throw new RuntimeException("건축물대장 PDF 자동저장 실패.\n스크린샷(dbg_gov24_download_tab.png)을 확인하세요.");
+                    }
+                    logger.accept("건축물대장 다운로드 완료.");
                     return true;
                 }
             }

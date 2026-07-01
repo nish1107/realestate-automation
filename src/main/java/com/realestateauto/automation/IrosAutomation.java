@@ -126,6 +126,10 @@ public class IrosAutomation {
         options.setExperimentalOption("prefs", prefs);
         String profileDir = System.getProperty("user.home") + "/iros-chrome-profile";
         new File(profileDir).mkdirs();
+        for (String lockFile : new String[]{"SingletonLock", "SingletonSocket", "SingletonCookie"}) {
+            File lf = new File(profileDir + "/" + lockFile);
+            if (lf.exists()) { lf.delete(); this.logger.accept("[Chrome] 락파일 정리: " + lockFile); }
+        }
         options.addArguments(new String[]{"--user-data-dir=" + profileDir});
         ChromeDriver driver = new ChromeDriver(options);
         driver.executeScript("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})", new Object[0]);

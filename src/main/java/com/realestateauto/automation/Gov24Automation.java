@@ -393,6 +393,8 @@ public class Gov24Automation {
                     ((JavascriptExecutor) driver).executeScript("arguments[0].value='';", el);
                     el.sendKeys(password);
                     Thread.sleep(300);
+                    // CAPTCHA 입력 시 포커스 충돌 방지: 비밀번호 필드 포커스 해제
+                    ((JavascriptExecutor) driver).executeScript("arguments[0].blur();", el);
                     break;
                 }
             }
@@ -749,7 +751,13 @@ public class Gov24Automation {
                         || rePwText.contains("자동입력방지코드") || rePwText.contains("자동입력 방지코드");
                 List<WebElement> pw2 = driver.findElements(By.cssSelector("input[type=password]"));
                 for (WebElement el : pw2) {
-                    if (el.isDisplayed()) { el.clear(); el.sendKeys(password); Thread.sleep(300); break; }
+                    if (el.isDisplayed()) {
+                        el.clear();
+                        el.sendKeys(password);
+                        Thread.sleep(300);
+                        ((JavascriptExecutor) driver).executeScript("arguments[0].blur();", el);
+                        break;
+                    }
                 }
                 if (reHasCaptcha) {
                     saveScreenshot(driver, "gov24_relogin_captcha");

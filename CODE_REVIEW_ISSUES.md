@@ -40,9 +40,10 @@
 - 스냅샷을 `printBtn.click()` 이전으로 이동, `waitForNewFile(Set<String>)`으로 전달
 - 1순위(CDP PDF) 경로 영향 없음 — 2순위(인쇄 버튼) 경로만 수정
 
-### ~~8. Gov24Automation.java — clickBuildingDongSearchAndSelect() 항상 첫 번째 동 선택~~ ✅ 수정완료
-- `parts.dong` 파라미터 추가; `dong+"동"` 텍스트 매칭 후 일치 없으면 첫 번째 폴백
-- 인페이지(`button.list-btn`)·새창 팝업 두 경로 모두 적용
+### 8. Gov24Automation.java — clickBuildingDongSearchAndSelect() 항상 첫 번째 동 선택
+- **위치**: `clickBuildingDongSearchAndSelect()`, line ~2020
+- **문제**: 항상 첫 번째 `button.list-btn` 을 클릭함. `parts.dong` 값과 실제 매칭하지 않음
+- **영향**: 다동 건물에서 잘못된 동 선택 가능
 
 ### 9. Gov24Automation.java — tryGov24() 집합/일반 모두 실패 시 로그 없음
 - **위치**: `tryGov24()`, lines ~543–546

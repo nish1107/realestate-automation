@@ -541,10 +541,12 @@ public class IrosAutomation {
     }
 
     private String parseDong(String aptUnit) {
+        if (!aptUnit.contains("\ub3d9")) return "";
         return aptUnit.replaceAll("\ub3d9.*", "").trim();
     }
 
     private String parseHo(String aptUnit) {
+        if (!aptUnit.contains("\ub3d9")) return aptUnit.replaceAll("[^0-9]", "");
         return aptUnit.replaceAll(".*\ub3d9\\s*", "").replaceAll("[^0-9]", "");
     }
 
@@ -568,7 +570,8 @@ public class IrosAutomation {
                 catch (Exception e) {
                     continue;
                 }
-                if (!text.contains(dong + "\ub3d9") || !text.contains(ho + "\ud638") || (tds = row.findElements(By.tagName((String)"td"))).isEmpty()) continue;
+                boolean matches = dong.isEmpty() ? text.contains(ho + "\ud638") : (text.contains(dong + "\ub3d9") && text.contains(ho + "\ud638"));
+                if (!matches || (tds = row.findElements(By.tagName((String)"td"))).isEmpty()) continue;
                 if (skipIfSelected && Boolean.TRUE.equals(checked = (Boolean)driver.executeScript("var inputs = arguments[0].querySelectorAll('input');for(var i=0;i<inputs.length;i++){if(inputs[i].checked)return true;}return false;", new Object[]{row}))) {
                     this.logger.accept("\ud589 \uc774\ubbf8 \uc120\ud0dd\ub428(\uc2a4\ud0b5): " + text.substring(0, Math.min(60, text.length())));
                     return true;
@@ -931,7 +934,8 @@ public class IrosAutomation {
             "  var btn=viewBtn||anyEl;" +
             "  if(!btn) continue;" +
             "  if(firstBtn===null){firstBtn=btn; firstRow=t.substring(0,40);}" +
-            "  if(dong&&ho&&t.includes(dong+'\ub3d9')&&t.includes(ho+'\ud638')){fire(btn);return '\ub9e4\uce6d:'+(viewBtn?'\uc5f4\ub78c':'\uccab\uc694\uc18c')+':'+t.substring(0,50);}" +
+            "  var matched=ho&&(!dong?t.includes(ho+'\ud638'):(t.includes(dong+'\ub3d9')&&t.includes(ho+'\ud638')));" +
+            "  if(matched){fire(btn);return '\ub9e4\uce6d:'+(viewBtn?'\uc5f4\ub78c':'\uccab\uc694\uc18c')+':'+t.substring(0,50);}" +
             "}" +
             "if(firstBtn){fire(firstBtn); return '\uccab\ud589:'+firstRow;}" +
             "return false;", new Object[]{dong, ho});
@@ -1127,6 +1131,10 @@ public class IrosAutomation {
             return m.group(1).replaceAll("\\s+", " ").trim();
         }
         m = Pattern.compile("(\\d+\ub3d9)").matcher(address);
+        if (m.find()) {
+            return m.group(1);
+        }
+        m = Pattern.compile("(\\d+호)").matcher(address);
         if (m.find()) {
             return m.group(1);
         }

@@ -2477,10 +2477,13 @@ public class Gov24Automation {
                                 WebElement printBtn = driver.findElement(By.xpath(
                                     "//*[(self::button or self::a or self::input) and normalize-space(.)='인쇄']"));
                                 if (printBtn.isDisplayed()) {
+                                    Set<String> printBefore = new File(savePath).list() != null
+                                        ? new HashSet<>(Arrays.asList(new File(savePath).list()))
+                                        : new HashSet<>();
                                     printBtn.click();
                                     Thread.sleep(3000);
                                     dismissBrowserAlert(driver);
-                                    waitForNewFile();
+                                    waitForNewFile(printBefore);
                                     pdfSaved = true;
                                     logger.accept("인쇄 버튼으로 저장됨");
                                 }
@@ -2524,9 +2527,7 @@ public class Gov24Automation {
         return false;
     }
 
-    private void waitForNewFile() throws InterruptedException {
-        String[] before = new File(savePath).list();
-        Set<String> beforeSet = before != null ? new HashSet<>(Arrays.asList(before)) : new HashSet<>();
+    private void waitForNewFile(Set<String> beforeSet) throws InterruptedException {
         long end = System.currentTimeMillis() + 30000;
         while (System.currentTimeMillis() < end) {
             Thread.sleep(1000);

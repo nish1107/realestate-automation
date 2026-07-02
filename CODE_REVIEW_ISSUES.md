@@ -33,15 +33,12 @@
 
 ## 🟡 MEDIUM PRIORITY (엣지케이스)
 
-### 6. Gov24Automation.java — dismissPopups() 무차별 버튼 클릭
-- **위치**: `dismissPopups()` 메서드
-- **문제**: 페이지 내 모든 `확인` / `닫기` 버튼을 클릭함. 폼 진행 중에 호출되면 필요한 팝업까지 닫아버릴 수 있음
-- **영향**: 특정 시나리오에서 폼 플로우 중단 가능
+### ~~6. Gov24Automation.java — dismissPopups() 무차별 버튼 클릭~~ ⏭ 스킵
+- 호출 위치가 로그인/진입 직후로만 한정되어 실제 문제 미발생
 
-### 7. Gov24Automation.java — waitForNewFile() 레이스 컨디션
-- **위치**: `waitForNewFile()` 메서드
-- **문제**: 출력 버튼 클릭 *이후* 파일 스냅샷을 찍음. 버튼 클릭과 스냅샷 사이에 파일이 이미 생성되면 감지 불가
-- **영향**: 빠른 다운로드 환경에서 파일 감지 실패 가능
+### ~~7. Gov24Automation.java — waitForNewFile() 레이스 컨디션~~ ✅ 수정완료
+- 스냅샷을 `printBtn.click()` 이전으로 이동, `waitForNewFile(Set<String>)`으로 전달
+- 1순위(CDP PDF) 경로 영향 없음 — 2순위(인쇄 버튼) 경로만 수정
 
 ### 8. Gov24Automation.java — clickBuildingDongSearchAndSelect() 항상 첫 번째 동 선택
 - **위치**: `clickBuildingDongSearchAndSelect()`, line ~2020

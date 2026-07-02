@@ -1244,6 +1244,36 @@ public class Gov24Automation {
             if (rowClick != null && !rowClick.equals("not_found")) {
                 anyResultSelected = true;
                 Thread.sleep(1500);
+                // 처리기관 목록 등장 → 시/도 이름으로 시작하는 LI 클릭
+                String choriClick = (String) ((JavascriptExecutor) driver).executeScript(
+                    "function doClick(el){" +
+                    "  var btn=el.querySelector('button');" +
+                    "  if(btn){btn.click();return true;}" +
+                    "  var keys=Object.getOwnPropertyNames(el);" +
+                    "  for(var k=0;k<keys.length;k++){" +
+                    "    if(keys[k].startsWith('__reactProps$')){" +
+                    "      var p=el[keys[k]];" +
+                    "      if(p&&typeof p.onClick==='function'){" +
+                    "        p.onClick({type:'click',target:el,currentTarget:el,preventDefault:function(){},stopPropagation:function(){}});" +
+                    "        return true;" +
+                    "      }" +
+                    "    }" +
+                    "  }" +
+                    "  el.click(); return true;" +
+                    "}" +
+                    "var PROV=/^(\\uC11C\\uC6B8|\\uBD80\\uC0B0|\\uB300\\uAD6C|\\uC778\\uCC9C|\\uAD11\\uC8FC|\\uB300\\uC804|\\uC6B8\\uC0B0|\\uC138\\uC885|\\uACBD\\uAE30|\\uAC15\\uC6D0|\\uCDA9\\uBD81|\\uCDA9\\uB0A8|\\uC804\\uBD81|\\uC804\\uB0A8|\\uACBD\\uBD81|\\uACBD\\uB0A8|\\uC81C\\uC8FC)/;" +
+                    "var lis=document.querySelectorAll('li,a,tr,td');" +
+                    "for(var i=0;i<lis.length;i++){" +
+                    "  var el=lis[i];" +
+                    "  var rc=el.getBoundingClientRect();" +
+                    "  if(rc.width<5||rc.height<5)continue;" +
+                    "  var t=(el.textContent||'').replace(/\\s+/g,' ').trim();" +
+                    "  if(t.length<5||t.length>60)continue;" +
+                    "  if(PROV.test(t)){doClick(el);return '처리기관:'+t.substring(0,50);}" +
+                    "}" +
+                    "return '처리기관없음';");
+                logger.accept("처리기관 선택: " + choriClick);
+                Thread.sleep(1000);
             } else {
                 logger.accept("팝업 결과 없음");
             }
@@ -1717,11 +1747,18 @@ public class Gov24Automation {
                     logger.accept("동명칭 팝업창 URL: " + driver.getCurrentUrl());
                     saveScreenshot(driver, "gov24_dong_popup_window");
                     String result = (String) ((JavascriptExecutor) driver).executeScript(
-                        "var items=document.querySelectorAll('a,tr,td,li');" +
+                        // 1순위: '선택' 텍스트 버튼
+                        "var btns=document.querySelectorAll('button,input[type=button],input[type=submit]');" +
+                        "for(var i=0;i<btns.length;i++){" +
+                        "  var t=(btns[i].textContent||btns[i].value||'').trim();" +
+                        "  var rc=btns[i].getBoundingClientRect();" +
+                        "  if(rc.width>0&&rc.height>0&&t==='선택'){btns[i].click();return '선택버튼:'+t;}" +
+                        "}" +
+                        // 2순위: onclick 행/링크 (구버전 HTML)
+                        "var items=document.querySelectorAll('tr[onclick],td[onclick],a[onclick],tbody a');" +
                         "for(var i=0;i<items.length;i++){" +
-                        "  var t=(items[i].textContent||'').replace(/\\s+/g,' ').trim();" +
                         "  var rc=items[i].getBoundingClientRect();" +
-                        "  if(rc.width>0&&rc.height>5&&t.length>0&&t.length<30){items[i].click();return 'popup:'+t.substring(0,20);}" +
+                        "  if(rc.width>0&&rc.height>5){items[i].click();return 'onclick:'+(items[i].textContent||'').trim().substring(0,30);}" +
                         "}" +
                         "return 'not_found';");
                     logger.accept("동명칭 팝업 선택: " + result);
@@ -1776,6 +1813,7 @@ public class Gov24Automation {
         String mainHandle = driver.getWindowHandle();
 
         // 호명칭 검색 버튼: 동명칭 선택 후 동 버튼은 display:none → 남은 마지막 visible datLnkBtn이 호명칭 버튼
+        // 폴백: www.gov.kr 구버전은 <button> 태그 "검색" 사용
         boolean clicked = false;
         try {
             clicked = Boolean.TRUE.equals(((JavascriptExecutor) driver).executeScript(
@@ -1786,6 +1824,15 @@ public class Gov24Automation {
                 "  if(rc.width>0&&rc.height>0) last=btns[i];" +
                 "}" +
                 "if(last){last.scrollIntoView({block:'center'});last.click();return true;}" +
+                // 폴백: <button> 텍스트 "검색" 마지막 visible (동 버튼은 이미 hidden)
+                "var b2=document.querySelectorAll('button');" +
+                "var lastSrc=null;" +
+                "for(var i=0;i<b2.length;i++){" +
+                "  var t=(b2[i].textContent||'').trim();" +
+                "  var rc=b2[i].getBoundingClientRect();" +
+                "  if(rc.width>0&&rc.height>0&&t==='검색') lastSrc=b2[i];" +
+                "}" +
+                "if(lastSrc){lastSrc.scrollIntoView({block:'center'});lastSrc.click();return true;}" +
                 "return false;"));
             logger.accept("호명칭 검색 클릭: " + clicked);
         } catch (Exception e) { logger.accept("호명칭 검색 클릭 오류: " + e.getMessage()); return; }
@@ -1801,16 +1848,29 @@ public class Gov24Automation {
                     Thread.sleep(2000);
                     logger.accept("호명칭 팝업창 URL: " + driver.getCurrentUrl());
                     saveScreenshot(driver, "gov24_ho_popup_window");
-                    // 1순위: button.list-btn (동명칭과 동일 구조)
+                    // 1순위: www.gov.kr 구버전 — ho 번호 포함 행의 "선택" 버튼
                     String result = (String) ((JavascriptExecutor) driver).executeScript(
                         "var ho=arguments[0];" +
+                        "var rows=document.querySelectorAll('tr');" +
+                        "for(var i=0;i<rows.length;i++){" +
+                        "  var rowTxt=(rows[i].textContent||'').replace(/\\s+/g,' ').trim();" +
+                        "  if(rowTxt.indexOf(ho)>=0){" +
+                        "    var selBtns=rows[i].querySelectorAll('button,input[type=button],input[type=submit]');" +
+                        "    for(var j=0;j<selBtns.length;j++){" +
+                        "      var bt=(selBtns[j].textContent||selBtns[j].value||'').trim();" +
+                        "      var rc=selBtns[j].getBoundingClientRect();" +
+                        "      if(rc.width>0&&rc.height>0&&bt==='선택'){selBtns[j].click();return '행선택:'+rowTxt.substring(0,50);}" +
+                        "    }" +
+                        "  }" +
+                        "}" +
+                        // 2순위: button.list-btn (plus.gov.kr 신버전)
                         "var btns=document.querySelectorAll('button.list-btn');" +
                         "for(var i=0;i<btns.length;i++){" +
                         "  var t=(btns[i].textContent||'').replace(/\\s+/g,' ').trim();" +
                         "  if(t.indexOf(ho)>=0){btns[i].scrollIntoView({block:'center'});btns[i].click();return 'list-btn-match:'+t.substring(0,40);}" +
                         "}" +
                         "if(btns.length>0){btns[0].scrollIntoView({block:'center'});btns[0].click();return 'list-btn-first:'+btns.length;}" +
-                        // 2순위: a,tr,td,li (이전 방식)
+                        // 3순위: a,tr,td,li (이전 방식)
                         "var items=document.querySelectorAll('a,tr,td,li');" +
                         "for(var i=0;i<items.length;i++){" +
                         "  var t=(items[i].textContent||'').replace(/\\s+/g,' ').trim();" +

@@ -45,10 +45,10 @@
 - **수정**: line 1231에 `t.includes('도 ')` 조건 추가
 - **테스트**: "탑실로 152 210동 1501호" (경기도 용인시 기흥구) → PDF 저장 성공
 
-### 8. Gov24Automation.java — clickBuildingDongSearchAndSelect() 항상 첫 번째 동 선택
-- **위치**: `clickBuildingDongSearchAndSelect()`, line ~2020
-- **문제**: 항상 첫 번째 `button.list-btn` 을 클릭함. `parts.dong` 값과 실제 매칭하지 않음
-- **영향**: 다동 건물에서 잘못된 동 선택 가능
+### ~~8. Gov24Automation.java — clickBuildingDongSearchAndSelect() 항상 첫 번째 동 선택~~ ✅ 수정완료
+- 새 창 경로: tr 행 텍스트에서 `dong + "동"` 매칭 후 해당 행의 "선택" 버튼 클릭 (폴백: 첫 번째 버튼)
+- 인페이지 경로: `button.list-btn` 순회하며 regex `(?<![0-9])N동` 매칭 (폴백: 첫 번째 버튼)
+- 테스트: "탑실로 152 210동 1501호" → 201동→210동 정확히 선택, PDF 저장 성공
 
 ### 9. Gov24Automation.java — tryGov24() 집합/일반 모두 실패 시 로그 없음
 - **위치**: `tryGov24()`, lines ~543–546

@@ -131,15 +131,6 @@ public class IrosAutomation {
             if (lf.exists()) { lf.delete(); this.logger.accept("[Chrome] 락파일 정리: " + lockFile); }
         }
         options.addArguments(new String[]{"--user-data-dir=" + profileDir});
-        if (!isTouchEnInstalledInProfile(profileDir)) {
-            File crx = downloadTouchEnCrx(profileDir);
-            if (crx != null) {
-                options.addExtensions(crx);
-                this.logger.accept("[TouchEn] 확장 프로그램 설치 준비 완료");
-            }
-        } else {
-            this.logger.accept("[TouchEn] 확장 프로그램 이미 설치됨");
-        }
         ChromeDriver driver = new ChromeDriver(options);
         driver.executeScript("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})", new Object[0]);
         WebDriverWait wait = new WebDriverWait((WebDriver)driver, Duration.ofSeconds(20L));
@@ -694,6 +685,24 @@ public class IrosAutomation {
         String dbgPageText = this.getPageText(driver);
         this.logger.accept("[\uacb0\uc81c\ud398\uc774\uc9c0\uc0c1\ud0dc] URL=" + driver.getCurrentUrl());
         this.logger.accept("[\uacb0\uc81c\ud398\uc774\uc9c0\ud14d\uc2a4\ud2b8] " + dbgPageText.replace("\n"," ").substring(0, Math.min(300, dbgPageText.length())));
+        if (driver.getCurrentUrl().contains("install_nxkey")) {
+            this.logger.accept("\u26a0 TouchEn \ubcf4\uc548 \ud504\ub85c\uadf8\ub7a8 \uc124\uce58 \ud398\uc774\uc9c0 \uac10\uc9c0");
+            this.logger.accept("\u26a0 Chrome \ucc3d\uc5d0\uc11c TouchEn nxKey \ud655\uc7a5 \ud504\ub85c\uadf8\ub7a8\uc744 \uc124\uce58\ud558\uace0 \uc0c8\ub85c\uace0\uce68 \ud574\uc8fc\uc138\uc694. (\uc5ec\uae30\uc11c \ud398\uc774\uc9c0\uac00 \ubc14\ub00c\uba74 \uc790\ub3d9 \uc7ac\uc2dc\ub3c4\ud569\ub2c8\ub2e4)");
+            long installDeadline = System.currentTimeMillis() + 5 * 60 * 1000L;
+            while (System.currentTimeMillis() < installDeadline) {
+                Thread.sleep(3000L);
+                try {
+                    if (!driver.getCurrentUrl().contains("install_nxkey")) break;
+                } catch (Exception ignored) {}
+            }
+            if (driver.getCurrentUrl().contains("install_nxkey")) {
+                this.logger.accept("\u26a0 TouchEn \uc124\uce58 \ub300\uae30 \uc2dc\uac04 \ucd08\uacfc (5\ubd84) - \uc218\ub3d9\uc73c\ub85c \uc9c4\ud589\ud574\uc8fc\uc138\uc694.");
+                return;
+            }
+            this.logger.accept("TouchEn \uc124\uce58 \uc644\ub8cc \uac10\uc9c0 - \uacb0\uc81c \uc7ac\uc2dc\ub3c4 \uc911...");
+            Thread.sleep(2000L);
+            dbgPageText = this.getPageText(driver);
+        }
         boolean tabClicked = this.clickByTextAll(driver, "\uc120\ubd88\uc804\uc790\uc9c0\uae09\uc218\ub2e8");
         if (!tabClicked) {
             for (WebElement el : driver.findElements(By.tagName((String)"li"))) {
@@ -1206,57 +1215,4 @@ public class IrosAutomation {
         return false;
     }
 
-    private static final String[] TOUCHEN_EXT_IDS = {
-        "dncepekefegjiljlfbihljgogephdhph",
-        "gkdodgbccnhahcihaiakdkdfhchiahnf",
-        "dcpajfpljdghlmibcekolainmngcbpmb"
-    };
-
-    private boolean isTouchEnInstalledInProfile(String profileDir) {
-        for (String id : TOUCHEN_EXT_IDS) {
-            File extPath = new File(profileDir + "/Default/Extensions/" + id);
-            if (extPath.exists() && extPath.isDirectory()) return true;
-        }
-        return false;
-    }
-
-    private File downloadTouchEnCrx(String profileDir) {
-        File crxFile = new File(profileDir, "touchen_nxkey.crx");
-        if (crxFile.exists() && crxFile.length() > 5000) {
-            this.logger.accept("[TouchEn] 캐시된 CRX 사용");
-            return crxFile;
-        }
-        this.logger.accept("[TouchEn] CRX 다운로드 중...");
-        for (String id : TOUCHEN_EXT_IDS) {
-            try {
-                String url = "https://clients2.google.com/service/update2/crx"
-                    + "?response=redirect&prodversion=149.0.0.0&acceptformat=crx3"
-                    + "&x=id%3D" + id + "%26uc";
-                java.net.HttpURLConnection conn = (java.net.HttpURLConnection)
-                    new java.net.URL(url).openConnection();
-                conn.setRequestProperty("User-Agent",
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
-                conn.setConnectTimeout(10000);
-                conn.setReadTimeout(30000);
-                conn.setInstanceFollowRedirects(true);
-                conn.connect();
-                if (conn.getResponseCode() == 200) {
-                    try (java.io.InputStream in = conn.getInputStream();
-                         java.io.FileOutputStream out = new java.io.FileOutputStream(crxFile)) {
-                        byte[] buf = new byte[8192];
-                        int n;
-                        while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
-                    }
-                    if (crxFile.length() > 5000) {
-                        this.logger.accept("[TouchEn] 다운로드 완료: " + (crxFile.length() / 1024) + "KB");
-                        return crxFile;
-                    }
-                }
-            } catch (Exception e) {
-                this.logger.accept("[TouchEn] 다운로드 실패 (" + id.substring(0, 8) + "...): " + e.getMessage());
-            }
-        }
-        this.logger.accept("[TouchEn] CRX 다운로드 실패 - 결제 단계에서 수동 진행 필요");
-        return null;
-    }
 }

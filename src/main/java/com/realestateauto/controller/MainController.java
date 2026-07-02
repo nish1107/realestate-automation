@@ -168,15 +168,23 @@ public class MainController {
                     log("⚠ 작업이 타임아웃으로 강제 종료되었습니다.");
                 } else {
                     String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-                    log("오류 발생: " + msg);
-                    logException(e);
-                    Platform.runLater(() -> {
-                        Alert alert = new Alert(Alert.AlertType.ERROR, msg, ButtonType.OK);
-                        alert.setTitle("다운로드 오류");
-                        alert.setHeaderText(null);
-                        alert.getDialogPane().setPrefWidth(420);
-                        alert.showAndWait();
-                    });
+                    boolean windowClosed = msg.contains("target window already closed")
+                            || msg.contains("no such window")
+                            || msg.contains("web view not found")
+                            || msg.contains("session deleted");
+                    if (windowClosed) {
+                        log("⚠ Chrome 창이 닫혀 작업을 중단합니다.");
+                    } else {
+                        log("오류 발생: " + msg);
+                        logException(e);
+                        Platform.runLater(() -> {
+                            Alert alert = new Alert(Alert.AlertType.ERROR, msg, ButtonType.OK);
+                            alert.setTitle("다운로드 오류");
+                            alert.setHeaderText(null);
+                            alert.getDialogPane().setPrefWidth(420);
+                            alert.showAndWait();
+                        });
+                    }
                 }
             } finally {
                 stopWatchdog();

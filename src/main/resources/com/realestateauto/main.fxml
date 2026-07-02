@@ -56,7 +56,11 @@
         <Separator/>
 
         <VBox spacing="4">
-            <Label text="진행상황"/>
+            <HBox alignment="CENTER_LEFT" spacing="10">
+                <Label text="진행상황"/>
+                <Button text="로그 폴더 열기" onAction="#onOpenLogFolder"
+                        style="-fx-font-size: 11px; -fx-padding: 2 10;"/>
+            </HBox>
             <TextArea fx:id="logArea" editable="false" prefHeight="120"
                       style="-fx-font-family: monospace; -fx-font-size: 12px;"/>
         </VBox>

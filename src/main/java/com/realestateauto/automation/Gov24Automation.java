@@ -2804,6 +2804,7 @@ public class Gov24Automation {
     }
 
     void saveScreenshot(ChromeDriver driver, String name) {
+        if (System.getProperty("jpackage.app-version") != null) return;
         try {
             File src = driver.getScreenshotAs(OutputType.FILE);
             File dest = new File(savePath + File.separator + "dbg_" + name + ".png");

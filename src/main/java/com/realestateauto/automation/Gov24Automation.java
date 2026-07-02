@@ -255,7 +255,7 @@ public class Gov24Automation {
             if (!isLoggedIn(driver)) {
                 logger.accept("━━━━━━━━━━━━━━━━━━━━━━━━");
                 logger.accept("정부24 자동 로그인 실패 - 수동 로그인 필요");
-                logger.accept("열린 창에서 직접 로그인해주세요. (최대 5분 대기)");
+                logger.accept("열린 창에서 직접 로그인해주세요. (최대 15분 대기)");
                 logger.accept("━━━━━━━━━━━━━━━━━━━━━━━━");
                 if (!waitForManualLogin(driver)) {
                     logger.accept("로그인 없이 종료.");
@@ -2688,7 +2688,7 @@ public class Gov24Automation {
     }
 
     private boolean waitForManualLogin(ChromeDriver driver) throws InterruptedException {
-        for (int i = 0; i < 60; i++) {
+        for (int i = 0; i < 180; i++) {
             Thread.sleep(5000);
             if (isLoggedIn(driver)) return true;
         }

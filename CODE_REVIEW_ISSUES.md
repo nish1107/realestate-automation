@@ -60,24 +60,19 @@
 
 ## 🔵 LOW PRIORITY (코드 품질)
 
-### 11. AppConfig.java — isConfigured() 미사용 데드코드
-- **위치**: `AppConfig.isConfigured()` 메서드
-- **문제**: `MainController` 에서 한 번도 호출되지 않는 데드코드. 게다가 `serve.id` 를 검사하는데 serve 는 별도 서비스임
-- **영향**: 혼란 초래, 없애도 무방
+### ~~11. AppConfig.java — isConfigured() 미사용 데드코드~~ ✅ 수정완료
+- `isConfigured()` 메서드 삭제 (serve.id 검사하던 데드코드)
 
-### 12. MainController.java — ExecutorService 종료 안 됨
-- **위치**: line 41, `Executors.newSingleThreadExecutor()`
-- **문제**: 앱 종료 시 `executor.shutdown()` 호출 없음. `stage.setOnCloseRequest` 등으로 처리 필요
-- **영향**: JVM이 정상 종료되지 않고 스레드가 남을 수 있음
+### ~~12. MainController.java — ExecutorService 종료 안 됨~~ ✅ 수정완료
+- `MainController.shutdown()` 메서드 추가 (`executor.shutdownNow()`)
+- `MainApp.start()` 에서 `stage.setOnCloseRequest(e -> controller.shutdown())` 연결
 
-### 13. Gov24Automation.java — CAPTCHA 대기 시간 불일치
-- **문제**: `waitForCaptchaAndEnter` = 15분 vs `waitForManualLogin` = 5분으로 일관성 없음
-- **영향**: UX 혼란 (어떤 상황에서 얼마나 기다려야 하는지 불명확)
+### ~~13. Gov24Automation.java — CAPTCHA 대기 시간 불일치~~ ✅ 수정완료
+- `waitForManualLogin` 루프 60→180회 (5분→15분), 로그 메시지 "최대 5분" → "최대 15분"
+- `waitForCaptchaAndEnter`(450×2s=15분)와 일치
 
-### 14. MainApp.java — GUI 윈도우 크기 하드코딩
-- **위치**: `MainApp.java` line 13, `MainController.java` `setResizable(false)`
-- **문제**: `Scene` 크기 500x550 하드코딩, 리사이즈 불가
-- **영향**: 고DPI 환경이나 텍스트 크기 설정에 따라 UI 잘림 가능
+### ~~14. MainApp.java — GUI 윈도우 크기 하드코딩~~ ✅ 수정완료
+- `stage.setResizable(false)` → `stage.setResizable(true)`
 
 ---
 

@@ -171,6 +171,10 @@ public class MainController {
         serveBtn.setDisable(running);
     }
 
+    public void shutdown() {
+        executor.shutdownNow();
+    }
+
     private void showAlert(String message) {
         Alert alert = new Alert(Alert.AlertType.WARNING, message, ButtonType.OK);
         alert.showAndWait();

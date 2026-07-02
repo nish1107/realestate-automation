@@ -51,9 +51,5 @@ public class AppConfig {
         props.setProperty(key, value);
     }
 
-    public boolean isConfigured() {
-        return !get("iros.id").isEmpty()
-                && !get("gov24.id").isEmpty()
-                && !get("serve.id").isEmpty();
-    }
+
 }

@@ -258,12 +258,29 @@ public class IrosAutomation {
         WebElement addrInput;
         String sido = this.extractSido(address);
         this.logger.accept("\uc2dc/\ub3c4 \uc120\ud0dd: " + sido);
+        Select regionSelect = null;
         try {
-            Select regionSelect = new Select(driver.findElement(By.id((String)"mf_wfm_potal_main_wfm_content_sel_smpl_admin_regn1")));
+            regionSelect = new Select(driver.findElement(By.id((String)"mf_wfm_potal_main_wfm_content_sel_smpl_admin_regn1")));
             regionSelect.selectByVisibleText(sido);
         }
         catch (Exception e) {
-            this.logger.accept("\uc2dc/\ub3c4 \uc120\ud0dd \uc2e4\ud328: " + e.getMessage());
+            this.logger.accept("\uc2dc/\ub3c4 \uc120\ud0dd \uc2e4\ud328 (" + sido + "): " + e.getMessage());
+            // \uac15\uc6d0\ub3c4\u2194\uac15\uc6d0\ud2b9\ubcc4\uc790\uce58\ub3c4(2023), \uc804\ub77c\ubd81\ub3c4\u2194\uc804\ubd81\ud2b9\ubcc4\uc790\uce58\ub3c4(2024) \uac1c\uba85: \ub4dc\ub86d\ub2e4\uc6b4 \ubc84\uc804\uc5d0 \ub530\ub77c \uad6c/\uc2e0\uba85\uce6d \uc911 \ud558\ub098\ub9cc \uc874\uc7ac\ud560 \uc218 \uc788\uc73c\ubbc0\ub85c \ubc18\ub300 \uba85\uce6d\uc73c\ub85c \uc7ac\uc2dc\ub3c4
+            if (regionSelect != null) {
+                String alias = null;
+                if ("\uac15\uc6d0\ud2b9\ubcc4\uc790\uce58\ub3c4".equals(sido)) alias = "\uac15\uc6d0\ub3c4";
+                else if ("\uac15\uc6d0\ub3c4".equals(sido)) alias = "\uac15\uc6d0\ud2b9\ubcc4\uc790\uce58\ub3c4";
+                else if ("\uc804\ubd81\ud2b9\ubcc4\uc790\uce58\ub3c4".equals(sido)) alias = "\uc804\ub77c\ubd81\ub3c4";
+                else if ("\uc804\ub77c\ubd81\ub3c4".equals(sido)) alias = "\uc804\ubd81\ud2b9\ubcc4\uc790\uce58\ub3c4";
+                if (alias != null) {
+                    try {
+                        regionSelect.selectByVisibleText(alias);
+                        this.logger.accept("\uc2dc/\ub3c4 \ubcc4\uce6d \uc120\ud0dd: " + alias);
+                    } catch (Exception e2) {
+                        this.logger.accept("\uc2dc/\ub3c4 \ubcc4\uce6d\ub3c4 \uc2e4\ud328: " + alias);
+                    }
+                }
+            }
         }
         Thread.sleep(500L);
         String roadAddress = this.extractRoadAddress(address);
@@ -788,6 +805,7 @@ public class IrosAutomation {
                 Thread.sleep(500L);
                 String postConfirmText = this.getPageText(driver);
                 if (postConfirmText.contains("\uacb0\uc81c\uacb0\uacfc\ud655\uc778") || postConfirmText.contains("\uc2b9\uc778\uc774 \uc644\ub8cc")) {
+                    Thread.sleep(800L);
                     this.logger.accept("\uacb0\uc81c\uacb0\uacfc\ud655\uc778 \ud31d\uc5c5 - \ud655\uc778 \ud074\ub9ad");
                     this.handlePopup(driver, "\ud655\uc778");
                     Thread.sleep(800L);
@@ -828,6 +846,7 @@ public class IrosAutomation {
         Thread.sleep(1000L);
         String pageText = this.getPageText(driver);
         if (pageText.contains("\uacb0\uc81c\uacb0\uacfc\ud655\uc778") || pageText.contains("\uc2b9\uc778\uc774 \uc644\ub8cc")) {
+            Thread.sleep(800L);
             this.logger.accept("\uacb0\uc81c\uacb0\uacfc\ud655\uc778 \ud31d\uc5c5 \uac10\uc9c0 - \ud655\uc778 \ud074\ub9ad");
             this.handlePopup(driver, "\ud655\uc778");
             Thread.sleep(800L);
@@ -1009,13 +1028,33 @@ public class IrosAutomation {
                     for (WebElement el : driver.findElements(By.tagName((String)sel))) {
                         try {
                             if (!el.getText().trim().equals(buttonText) || !el.isDisplayed()) continue;
-                            driver.executeScript("arguments[0].click();", new Object[]{el});
+                            try {
+                                el.click();
+                            } catch (Exception ex) {
+                                driver.executeScript("arguments[0].click();", new Object[]{el});
+                            }
                             this.logger.accept("\ud31d\uc5c5 [" + buttonText + "] \ud074\ub9ad (" + sel + ")");
                             return;
                         }
                         catch (Exception exception) {
                         }
                     }
+                }
+                // isDisplayed() \uac00 false \uc5ec\ub3c4 offsetParent \uae30\uc900\uc73c\ub85c \uc2dc\uac01\uc801\uc73c\ub85c \ubcf4\uc774\ub294 \uc694\uc18c \ud074\ub9ad \uc2dc\ub3c4
+                String jsResult = (String) driver.executeScript(
+                    "var bt=arguments[0];" +
+                    "var tags=['button','a','span','div','input'];" +
+                    "for(var t=0;t<tags.length;t++){" +
+                    "  var els=document.querySelectorAll(tags[t]);" +
+                    "  for(var i=0;i<els.length;i++){" +
+                    "    if(!els[i].offsetParent) continue;" +
+                    "    var tx=(els[i].tagName==='INPUT'?(els[i].value||''):(els[i].innerText||'')).trim();" +
+                    "    if(tx===bt){els[i].click();return 'JS-fb:'+els[i].tagName+'.'+els[i].className;}" +
+                    "  }" +
+                    "}" +
+                    "return null;", buttonText);
+                if (jsResult != null) {
+                    this.logger.accept("\ud31d\uc5c5 [" + buttonText + "] \ud074\ub9ad (" + jsResult + ")");
                 }
             }
             catch (Exception e) {
@@ -1031,13 +1070,17 @@ public class IrosAutomation {
             if (!txt.contains("\ub4f1\uae30\uc0ac\ud56d\uc99d\uba85\uc11c\uac00 \uc874\uc7ac\ud569\ub2c8\ub2e4") && !txt.contains("\ucd94\uac00\ub97c \uc6d0\ud558\uc2dc\uba74")) {
                 return false;
             }
-            this.logger.accept("\uae30\uc874 \uacb0\uc81c \ud31d\uc5c5 \uac10\uc9c0 - \ucde8\uc18c(\ucd94\uac00 \uacc4\uc18d) \ud074\ub9ad");
+            this.logger.accept("\uae30\uc874 \uacb0\uc81c \ud31d\uc5c5 \uac10\uc9c0 - \ud655\uc778(\uc0c8\ub85c \uacb0\uc81c) \ud074\ub9ad");
             for (String sel : new String[]{"button", "a", "span", "div"}) {
                 for (WebElement el : driver.findElements(By.tagName((String)sel))) {
                     try {
-                        if (!"\ucde8\uc18c".equals(el.getText().trim()) || !el.isDisplayed()) continue;
-                        driver.executeScript("arguments[0].click();", new Object[]{el});
-                        this.logger.accept("\ucde8\uc18c \ud074\ub9ad (" + sel + ")");
+                        if (!"\ud655\uc778".equals(el.getText().trim()) || !el.isDisplayed()) continue;
+                        try {
+                            el.click();
+                        } catch (Exception ex) {
+                            driver.executeScript("arguments[0].click();", new Object[]{el});
+                        }
+                        this.logger.accept("\ud655\uc778 \ud074\ub9ad (" + sel + ")");
                         Thread.sleep(500L);
                         return true;
                     }
@@ -1045,7 +1088,7 @@ public class IrosAutomation {
                     }
                 }
             }
-            driver.executeScript("var els=document.querySelectorAll('*');for(var i=0;i<els.length;i++){  var t=(els[i].innerText||'').trim();  if(t==='\ucde8\uc18c' && els[i].offsetParent){els[i].click();return;}}", new Object[0]);
+            driver.executeScript("var els=document.querySelectorAll('*');for(var i=0;i<els.length;i++){  var t=(els[i].innerText||'').trim();  if(t==='\ud655\uc778' && els[i].offsetParent){els[i].click();return;}}", new Object[0]);
             Thread.sleep(500L);
             return true;
         }
@@ -1068,10 +1111,33 @@ public class IrosAutomation {
     }
 
     private String extractSido(String address) {
-        String[][] sidoMap;
-        for (String[] sido : sidoMap = new String[][]{{"\uc11c\uc6b8\ud2b9\ubcc4\uc2dc", "\uc11c\uc6b8"}, {"\ubd80\uc0b0\uad11\uc5ed\uc2dc", "\ubd80\uc0b0"}, {"\ub300\uad6c\uad11\uc5ed\uc2dc", "\ub300\uad6c"}, {"\uc778\ucc9c\uad11\uc5ed\uc2dc", "\uc778\ucc9c"}, {"\uad11\uc8fc\uad11\uc5ed\uc2dc", "\uad11\uc8fc"}, {"\ub300\uc804\uad11\uc5ed\uc2dc", "\ub300\uc804"}, {"\uc6b8\uc0b0\uad11\uc5ed\uc2dc", "\uc6b8\uc0b0"}, {"\uc138\uc885\ud2b9\ubcc4\uc790\uce58\uc2dc", "\uc138\uc885"}, {"\uacbd\uae30\ub3c4", "\uacbd\uae30"}, {"\uac15\uc6d0\ub3c4", "\uac15\uc6d0"}, {"\ucda9\uccad\ubd81\ub3c4", "\ucda9\ubd81"}, {"\ucda9\uccad\ub0a8\ub3c4", "\ucda9\ub0a8"}, {"\uc804\ub77c\ubd81\ub3c4", "\uc804\ubd81"}, {"\uc804\ub77c\ub0a8\ub3c4", "\uc804\ub0a8"}, {"\uacbd\uc0c1\ubd81\ub3c4", "\uacbd\ubd81"}, {"\uacbd\uc0c1\ub0a8\ub3c4", "\uacbd\ub0a8"}, {"\uc81c\uc8fc\ud2b9\ubcc4\uc790\uce58\ub3c4", "\uc81c\uc8fc"}}) {
-            if (!address.contains(sido[0]) && !address.startsWith(sido[1])) continue;
-            return sido[0];
+        // {\uc8fc\uc18c \ud0a4\uc6cc\ub4dc, \uc8fc\uc18c \uc811\ub450\uc0ac, IROS \ub4dc\ub86d\ub2e4\uc6b4 \ud14d\uc2a4\ud2b8}
+        // \uac15\uc6d0\ub3c4\u2192\uac15\uc6d0\ud2b9\ubcc4\uc790\uce58\ub3c4(2023), \uc804\ub77c\ubd81\ub3c4\u2192\uc804\ubd81\ud2b9\ubcc4\uc790\uce58\ub3c4(2024) \uac1c\uba85 \ubc18\uc601
+        String[][] sidoMap = {
+            {"\uc11c\uc6b8\ud2b9\ubcc4\uc2dc", "\uc11c\uc6b8", "\uc11c\uc6b8\ud2b9\ubcc4\uc2dc"},
+            {"\ubd80\uc0b0\uad11\uc5ed\uc2dc", "\ubd80\uc0b0", "\ubd80\uc0b0\uad11\uc5ed\uc2dc"},
+            {"\ub300\uad6c\uad11\uc5ed\uc2dc", "\ub300\uad6c", "\ub300\uad6c\uad11\uc5ed\uc2dc"},
+            {"\uc778\ucc9c\uad11\uc5ed\uc2dc", "\uc778\ucc9c", "\uc778\ucc9c\uad11\uc5ed\uc2dc"},
+            {"\uad11\uc8fc\uad11\uc5ed\uc2dc", "\uad11\uc8fc", "\uad11\uc8fc\uad11\uc5ed\uc2dc"},
+            {"\ub300\uc804\uad11\uc5ed\uc2dc", "\ub300\uc804", "\ub300\uc804\uad11\uc5ed\uc2dc"},
+            {"\uc6b8\uc0b0\uad11\uc5ed\uc2dc", "\uc6b8\uc0b0", "\uc6b8\uc0b0\uad11\uc5ed\uc2dc"},
+            {"\uc138\uc885\ud2b9\ubcc4\uc790\uce58\uc2dc", "\uc138\uc885", "\uc138\uc885\ud2b9\ubcc4\uc790\uce58\uc2dc"},
+            {"\uacbd\uae30\ub3c4", "\uacbd\uae30", "\uacbd\uae30\ub3c4"},
+            {"\uac15\uc6d0\ud2b9\ubcc4\uc790\uce58\ub3c4", "\uac15\uc6d0", "\uac15\uc6d0\ud2b9\ubcc4\uc790\uce58\ub3c4"},
+            {"\uac15\uc6d0\ub3c4", "\uac15\uc6d0", "\uac15\uc6d0\ud2b9\ubcc4\uc790\uce58\ub3c4"},
+            {"\ucda9\uccad\ubd81\ub3c4", "\ucda9\ubd81", "\ucda9\uccad\ubd81\ub3c4"},
+            {"\ucda9\uccad\ub0a8\ub3c4", "\ucda9\ub0a8", "\ucda9\uccad\ub0a8\ub3c4"},
+            {"\uc804\ubd81\ud2b9\ubcc4\uc790\uce58\ub3c4", "\uc804\ubd81", "\uc804\ubd81\ud2b9\ubcc4\uc790\uce58\ub3c4"},
+            {"\uc804\ub77c\ubd81\ub3c4", "\uc804\ubd81", "\uc804\ubd81\ud2b9\ubcc4\uc790\uce58\ub3c4"},
+            {"\uc804\ub77c\ub0a8\ub3c4", "\uc804\ub0a8", "\uc804\ub77c\ub0a8\ub3c4"},
+            {"\uacbd\uc0c1\ubd81\ub3c4", "\uacbd\ubd81", "\uacbd\uc0c1\ubd81\ub3c4"},
+            {"\uacbd\uc0c1\ub0a8\ub3c4", "\uacbd\ub0a8", "\uacbd\uc0c1\ub0a8\ub3c4"},
+            {"\uc81c\uc8fc\ud2b9\ubcc4\uc790\uce58\ub3c4", "\uc81c\uc8fc", "\uc81c\uc8fc\ud2b9\ubcc4\uc790\uce58\ub3c4"},
+        };
+        for (String[] sido : sidoMap) {
+            if (address.contains(sido[0]) || address.startsWith(sido[1])) {
+                return sido[2];
+            }
         }
         return "-\uc804\uccb4-";
     }

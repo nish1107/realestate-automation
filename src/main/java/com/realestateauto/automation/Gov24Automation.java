@@ -1223,12 +1223,12 @@ public class Gov24Automation {
             logger.accept("팝업 결과 DOM: " + resultDebug);
 
             String rowClick = (String) ((JavascriptExecutor) driver).executeScript(
-                // 1순위: 행정처리기관 링크 (특별시/광역시/동 포함)
+                // 1순위: 행정처리기관 링크 (특별시/광역시/도/동 포함)
                 "var els=document.querySelectorAll('a,td,li,tr');" +
                 "for(var i=0;i<els.length;i++){" +
                 "  var t=(els[i].textContent||'').replace(/\\s+/g,' ').trim();" +
                 "  var rc=els[i].getBoundingClientRect();" +
-                "  if(rc.width>0&&rc.height>5&&(t.includes('특별시')||t.includes('광역시')||t.includes('동(')||t.includes('면(')||t.includes('읍('))){" +
+                "  if(rc.width>0&&rc.height>5&&(t.includes('특별시')||t.includes('광역시')||t.includes('도 ')||t.includes('동(')||t.includes('면(')||t.includes('읍('))){" +
                 "    els[i].click();return '처리기관:'+t.substring(0,50);" +
                 "  }" +
                 "}" +

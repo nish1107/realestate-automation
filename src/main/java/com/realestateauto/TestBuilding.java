@@ -5,7 +5,7 @@ import com.realestateauto.service.BuildingService;
 
 public class TestBuilding {
     public static void main(String[] args) throws Exception {
-        String address = "방이동 46-2 사보이시티잠실 1422호";
+        String address = "탑실로 152 210동 1501호";
         AppConfig config = new AppConfig();
         config.set("gov24.addressType", "도로명");
         String savePath = config.get("savePath").isEmpty()

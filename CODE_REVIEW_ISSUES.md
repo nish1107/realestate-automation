@@ -40,6 +40,11 @@
 - 스냅샷을 `printBtn.click()` 이전으로 이동, `waitForNewFile(Set<String>)`으로 전달
 - 1순위(CDP PDF) 경로 영향 없음 — 2순위(인쇄 버튼) 경로만 수정
 
+### ~~추가 버그: Gov24Automation.java — handleBuildingSearchPopup() 도(道) 주소 결과 미매칭~~ ✅ 수정완료
+- **원인**: 결과 텍스트 판별 조건에 `특별시`/`광역시`만 있고 `도 ` 없음 → 경기도·충청도·전라도·경상도·강원도·제주도 주소는 `not_found` 반환 → 주소 필드 빈값 → 검색 실패 → 창 상태 오염 → 예외
+- **수정**: line 1231에 `t.includes('도 ')` 조건 추가
+- **테스트**: "탑실로 152 210동 1501호" (경기도 용인시 기흥구) → PDF 저장 성공
+
 ### 8. Gov24Automation.java — clickBuildingDongSearchAndSelect() 항상 첫 번째 동 선택
 - **위치**: `clickBuildingDongSearchAndSelect()`, line ~2020
 - **문제**: 항상 첫 번째 `button.list-btn` 을 클릭함. `parts.dong` 값과 실제 매칭하지 않음

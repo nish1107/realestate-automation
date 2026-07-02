@@ -2687,6 +2687,13 @@ public class Gov24Automation {
                 try { saveScreenshot(driver, "captcha_screenshot"); } catch (Exception ignored) {}
                 logger.accept("[" + tag + "] 로그인 대기 중... (" + (w * 2 / 60) + "분)");
             }
+            // 1분마다 크롬 창을 앞으로 가져옴
+            if (w % 30 == 0) {
+                try {
+                    driver.switchTo().window(driver.getWindowHandle());
+                    ((JavascriptExecutor) driver).executeScript("window.focus();");
+                } catch (Exception ignored) {}
+            }
         }
         logger.accept("[" + tag + "] 로그인 대기 타임아웃");
         return false;

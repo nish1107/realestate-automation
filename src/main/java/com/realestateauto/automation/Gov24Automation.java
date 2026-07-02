@@ -1090,7 +1090,7 @@ public class Gov24Automation {
         // ── 건물동명칭 검색 → 선택 ─────────────────────────────────────────────
         Thread.sleep(600);
         saveScreenshot(driver, "gov24_before_dong_search");
-        clickBuildingDongSearchAndSelect(driver);
+        clickBuildingDongSearchAndSelect(driver, parts.dong);
 
         // ── 호명칭 검색 → 선택 ────────────────────────────────────────────────
         if (!parts.ho.isEmpty()) {
@@ -1711,7 +1711,7 @@ public class Gov24Automation {
         return result;
     }
 
-    private void clickBuildingDongSearchAndSelect(ChromeDriver driver) throws InterruptedException {
+    private void clickBuildingDongSearchAndSelect(ChromeDriver driver, String dong) throws InterruptedException {
         Set<String> beforeHandles = driver.getWindowHandles();
         String mainHandle = driver.getWindowHandle();
 
@@ -1747,20 +1747,33 @@ public class Gov24Automation {
                     logger.accept("동명칭 팝업창 URL: " + driver.getCurrentUrl());
                     saveScreenshot(driver, "gov24_dong_popup_window");
                     String result = (String) ((JavascriptExecutor) driver).executeScript(
-                        // 1순위: '선택' 텍스트 버튼
+                        // dong 매칭: 행에 dong+"동" 텍스트가 있으면 그 행의 '선택' 버튼 클릭
+                        "var dong=arguments[0];" +
+                        "if(dong){" +
+                        "  var rows=document.querySelectorAll('tr');" +
+                        "  for(var r=0;r<rows.length;r++){" +
+                        "    var rt=(rows[r].textContent||'').trim();" +
+                        "    if(rt.includes(dong+'동')){" +
+                        "      var sb=rows[r].querySelector('button,input[type=button],input[type=submit]');" +
+                        "      if(sb&&(sb.textContent||sb.value||'').trim()==='선택'){sb.click();return '행매칭:'+rt.substring(0,40);}" +
+                        "      if(rows[r].onclick){rows[r].click();return '행onclick:'+rt.substring(0,40);}" +
+                        "    }" +
+                        "  }" +
+                        "}" +
+                        // 폴백: 첫 번째 visible '선택' 버튼
                         "var btns=document.querySelectorAll('button,input[type=button],input[type=submit]');" +
                         "for(var i=0;i<btns.length;i++){" +
                         "  var t=(btns[i].textContent||btns[i].value||'').trim();" +
                         "  var rc=btns[i].getBoundingClientRect();" +
-                        "  if(rc.width>0&&rc.height>0&&t==='선택'){btns[i].click();return '선택버튼:'+t;}" +
+                        "  if(rc.width>0&&rc.height>0&&t==='선택'){btns[i].click();return '선택버튼폴백:'+t;}" +
                         "}" +
-                        // 2순위: onclick 행/링크 (구버전 HTML)
+                        // 2순위 폴백: onclick 행/링크 (구버전 HTML)
                         "var items=document.querySelectorAll('tr[onclick],td[onclick],a[onclick],tbody a');" +
                         "for(var i=0;i<items.length;i++){" +
                         "  var rc=items[i].getBoundingClientRect();" +
                         "  if(rc.width>0&&rc.height>5){items[i].click();return 'onclick:'+(items[i].textContent||'').trim().substring(0,30);}" +
                         "}" +
-                        "return 'not_found';");
+                        "return 'not_found';", dong);
                     logger.accept("동명칭 팝업 선택: " + result);
                     Thread.sleep(1000);
                     for (int w = 0; w < 10; w++) {
@@ -1777,12 +1790,17 @@ public class Gov24Automation {
             saveScreenshot(driver, "gov24_dong_search_result");
             boolean dongSelected = false;
 
-            // 1순위: button.list-btn 직접 클릭
+            // 1순위: button.list-btn 직접 클릭 (dong+"동" 매칭, 없으면 첫 번째 폴백)
             try {
                 List<WebElement> listBtns = driver.findElements(By.cssSelector("button.list-btn"));
                 logger.accept("동명칭 list-btn 개수: " + listBtns.size());
                 if (!listBtns.isEmpty()) {
                     WebElement btn = listBtns.get(0);
+                    if (!dong.isEmpty()) {
+                        for (WebElement b : listBtns) {
+                            if (b.getText().replace("\n", " ").trim().contains(dong + "동")) { btn = b; break; }
+                        }
+                    }
                     String btnText = btn.getText().replace("\n", " ").trim();
                     ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block:'center'});", btn);
                     Thread.sleep(300);
@@ -1794,12 +1812,17 @@ public class Gov24Automation {
                 logger.accept("동명칭 list-btn 클릭 오류: " + e.getMessage());
             }
 
-            // 2순위: JS fallback
+            // 2순위: JS fallback (dong+"동" 매칭, 없으면 첫 번째 폴백)
             if (!dongSelected) {
                 String result = (String) ((JavascriptExecutor) driver).executeScript(
+                    "var dong=arguments[0];" +
                     "var btns=document.querySelectorAll('button.list-btn');" +
-                    "if(btns.length>0){btns[0].scrollIntoView({block:'center'});btns[0].click();return 'js:'+btns.length;}" +
-                    "return 'not_found';");
+                    "if(btns.length>0){" +
+                    "  var sel=btns[0];" +
+                    "  if(dong){for(var i=0;i<btns.length;i++){var t=(btns[i].textContent||'').trim();if(t.includes(dong+'동')){sel=btns[i];break;}}}" +
+                    "  sel.scrollIntoView({block:'center'});sel.click();return 'js:'+btns.length;" +
+                    "}" +
+                    "return 'not_found';", dong);
                 logger.accept("동명칭 JS fallback: " + result);
                 if (!"not_found".equals(result)) dongSelected = true;
             }

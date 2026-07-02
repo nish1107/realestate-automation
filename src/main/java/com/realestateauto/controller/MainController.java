@@ -11,6 +11,7 @@ import javafx.scene.layout.HBox;
 import javafx.stage.DirectoryChooser;
 
 import java.awt.Desktop;
+import java.awt.Toolkit;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -18,6 +19,11 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class MainController {
 
@@ -50,6 +56,12 @@ public class MainController {
     private static final DateTimeFormatter LOG_LINE_FMT = DateTimeFormatter.ofPattern("HH:mm:ss");
     private File logDir;
     private BufferedWriter logWriter;
+
+    private static final long WATCHDOG_TIMEOUT_MS = 5 * 60 * 1000L; // 5분
+    private final AtomicLong lastLogTime = new AtomicLong(0);
+    private final ScheduledExecutorService watchdogExecutor = Executors.newSingleThreadScheduledExecutor();
+    private Future<?> currentTask;
+    private ScheduledFuture<?> watchdogTask;
 
     @FXML
     public void initialize() {
@@ -131,7 +143,8 @@ public class MainController {
         new File(savePath).mkdirs();
 
         setRunning(true);
-        executor.submit(() -> {
+        lastLogTime.set(System.currentTimeMillis());
+        currentTask = executor.submit(() -> {
             try {
                 if (registryCheck.isSelected()) {
                     log("=== 등기부등본 다운로드 시작 ===");
@@ -149,20 +162,28 @@ public class MainController {
                 }
                 log("=== 모든 다운로드 완료 ===");
             } catch (Exception e) {
-                String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-                log("오류 발생: " + msg);
-                logException(e);
-                Platform.runLater(() -> {
-                    Alert alert = new Alert(Alert.AlertType.ERROR, msg, ButtonType.OK);
-                    alert.setTitle("다운로드 오류");
-                    alert.setHeaderText(null);
-                    alert.getDialogPane().setPrefWidth(420);
-                    alert.showAndWait();
-                });
+                if (Thread.currentThread().isInterrupted() ||
+                        e instanceof InterruptedException ||
+                        (e.getCause() instanceof InterruptedException)) {
+                    log("⚠ 작업이 타임아웃으로 강제 종료되었습니다.");
+                } else {
+                    String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+                    log("오류 발생: " + msg);
+                    logException(e);
+                    Platform.runLater(() -> {
+                        Alert alert = new Alert(Alert.AlertType.ERROR, msg, ButtonType.OK);
+                        alert.setTitle("다운로드 오류");
+                        alert.setHeaderText(null);
+                        alert.getDialogPane().setPrefWidth(420);
+                        alert.showAndWait();
+                    });
+                }
             } finally {
+                stopWatchdog();
                 Platform.runLater(() -> setRunning(false));
             }
         });
+        startWatchdog();
     }
 
     @FXML
@@ -193,6 +214,7 @@ public class MainController {
     }
 
     private void log(String message) {
+        lastLogTime.set(System.currentTimeMillis());
         String line = LocalTime.now().format(LOG_LINE_FMT) + " " + message;
         Platform.runLater(() -> {
             logArea.appendText(line + "\n");
@@ -204,6 +226,30 @@ public class MainController {
                 } catch (IOException ignored) {}
             }
         });
+    }
+
+    private void startWatchdog() {
+        watchdogTask = watchdogExecutor.scheduleAtFixedRate(() -> {
+            long idleMs = System.currentTimeMillis() - lastLogTime.get();
+            if (idleMs >= WATCHDOG_TIMEOUT_MS) {
+                // 경보음 3회
+                for (int i = 0; i < 3; i++) {
+                    Toolkit.getDefaultToolkit().beep();
+                    try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+                }
+                log("⚠ [타임아웃] " + (idleMs / 1000 / 60) + "분간 응답 없음 - 작업을 강제 종료합니다.");
+                stopWatchdog();
+                if (currentTask != null) {
+                    currentTask.cancel(true);
+                }
+            }
+        }, 30, 30, TimeUnit.SECONDS);
+    }
+
+    private void stopWatchdog() {
+        if (watchdogTask != null && !watchdogTask.isCancelled()) {
+            watchdogTask.cancel(false);
+        }
     }
 
     private void logException(Exception e) {
@@ -239,6 +285,8 @@ public class MainController {
     }
 
     public void shutdown() {
+        stopWatchdog();
+        watchdogExecutor.shutdownNow();
         executor.shutdownNow();
         if (logWriter != null) {
             try { logWriter.close(); } catch (IOException ignored) {}

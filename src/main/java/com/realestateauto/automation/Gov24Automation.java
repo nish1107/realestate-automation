@@ -409,7 +409,6 @@ public class Gov24Automation {
             }
             if (hasCaptcha) {
                 saveScreenshot(driver, "gov24_captcha_waiting");
-                beepAlert();
                 waitForCaptchaAndEnter(driver, "초기로그인");
                 // 사용자가 직접 로그인 버튼을 누름 - 코드는 대기만 함
             } else {
@@ -775,7 +774,6 @@ public class Gov24Automation {
                 }
                 if (reHasCaptcha) {
                     saveScreenshot(driver, "gov24_relogin_captcha");
-                    beepAlert();
                     waitForCaptchaAndEnter(driver, "재인증");
                     // 사용자가 직접 로그인 버튼을 누름
                 } else {

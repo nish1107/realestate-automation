@@ -2719,7 +2719,7 @@ public class Gov24Automation {
             Thread.sleep(5000);
             if (isLoggedIn(driver)) return true;
         }
-        logger.accept("로그인 대기 시간 초과 (5분) - 다운로드 종료.");
+        logger.accept("로그인 대기 시간 초과 (15분) - 다운로드 종료.");
         return false;
     }
 

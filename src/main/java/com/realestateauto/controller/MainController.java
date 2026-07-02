@@ -281,7 +281,6 @@ public class MainController {
 
     private void setRunning(boolean running) {
         downloadBtn.setDisable(running);
-        serveBtn.setDisable(running);
     }
 
     public void shutdown() {

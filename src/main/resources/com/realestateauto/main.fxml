@@ -32,7 +32,7 @@
             <HBox spacing="20">
                 <CheckBox fx:id="registryCheck" text="등기부등본" selected="true"/>
                 <CheckBox fx:id="buildingCheck" text="건축물대장"/>
-                <CheckBox fx:id="landCheck" text="토지대장"/>
+                <CheckBox fx:id="landCheck" text="토지대장" disable="true" opacity="0.4"/>
             </HBox>
             <HBox fx:id="addressTypeBox" spacing="12" alignment="CENTER_LEFT"
                   visible="false" managed="false"
@@ -50,6 +50,7 @@
                     HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
             <Button fx:id="serveBtn" text="써브 광고등록"
                     onAction="#onOpenServe"
+                    disable="true" opacity="0.4"
                     style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 8 20;"/>
         </HBox>
 

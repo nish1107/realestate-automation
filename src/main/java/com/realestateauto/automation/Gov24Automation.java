@@ -76,6 +76,11 @@ public class Gov24Automation {
             File f = new File(profileDir + "/" + lockFile);
             if (f.exists()) { f.delete(); logger.accept("[Chrome] 락파일 정리: " + lockFile); }
         }
+        // 저장된 비밀번호 자동완성 방지: Login Data 삭제 (쿠키/세션은 별도 파일이라 영향 없음)
+        for (String loginFile : new String[]{"Default/Login Data", "Default/Login Data-journal"}) {
+            File f = new File(profileDir + "/" + loginFile);
+            if (f.exists()) { f.delete(); }
+        }
         options.addArguments("--user-data-dir=" + profileDir);
 
         ChromeDriver driver = null;
@@ -389,12 +394,16 @@ public class Gov24Automation {
             List<WebElement> pwInputs = driver.findElements(By.cssSelector("input[type=password]"));
             for (WebElement el : pwInputs) {
                 if (el.isDisplayed()) {
-                    el.clear();
-                    ((JavascriptExecutor) driver).executeScript("arguments[0].value='';", el);
-                    el.sendKeys(password);
+                    // sendKeys 대신 JS 직접 주입: Chrome 자동완성 재트리거 방지
+                    ((JavascriptExecutor) driver).executeScript(
+                        "var el=arguments[0], pw=arguments[1];" +
+                        "el.value='';" +
+                        "el.value=pw;" +
+                        "el.dispatchEvent(new Event('input',{bubbles:true}));" +
+                        "el.dispatchEvent(new Event('change',{bubbles:true}));" +
+                        "el.blur();",
+                        el, password);
                     Thread.sleep(300);
-                    // CAPTCHA 입력 시 포커스 충돌 방지: 비밀번호 필드 포커스 해제
-                    ((JavascriptExecutor) driver).executeScript("arguments[0].blur();", el);
                     break;
                 }
             }
@@ -752,10 +761,15 @@ public class Gov24Automation {
                 List<WebElement> pw2 = driver.findElements(By.cssSelector("input[type=password]"));
                 for (WebElement el : pw2) {
                     if (el.isDisplayed()) {
-                        el.clear();
-                        el.sendKeys(password);
+                        ((JavascriptExecutor) driver).executeScript(
+                            "var el=arguments[0], pw=arguments[1];" +
+                            "el.value='';" +
+                            "el.value=pw;" +
+                            "el.dispatchEvent(new Event('input',{bubbles:true}));" +
+                            "el.dispatchEvent(new Event('change',{bubbles:true}));" +
+                            "el.blur();",
+                            el, password);
                         Thread.sleep(300);
-                        ((JavascriptExecutor) driver).executeScript("arguments[0].blur();", el);
                         break;
                     }
                 }

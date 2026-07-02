@@ -261,7 +261,12 @@ public class IrosAutomation {
         Select regionSelect = null;
         try {
             regionSelect = new Select(driver.findElement(By.id((String)"mf_wfm_potal_main_wfm_content_sel_smpl_admin_regn1")));
-            regionSelect.selectByVisibleText(sido);
+            if (sido.isEmpty()) {
+                regionSelect.selectByIndex(0);
+                this.logger.accept("\uc2dc/\ub3c4 \ubbf8\uc778\uc2dd - \uccab \ubc88\uc9f8 \uc635\uc158(\uc804\uccb4) \uc120\ud0dd");
+            } else {
+                regionSelect.selectByVisibleText(sido);
+            }
         }
         catch (Exception e) {
             this.logger.accept("\uc2dc/\ub3c4 \uc120\ud0dd \uc2e4\ud328 (" + sido + "): " + e.getMessage());
@@ -1139,7 +1144,7 @@ public class IrosAutomation {
                 return sido[2];
             }
         }
-        return "-\uc804\uccb4-";
+        return "";
     }
 
     private String extractRoadAddress(String address) {

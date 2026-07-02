@@ -24,10 +24,9 @@
 - IrosAutomation: `/iros-chrome-profile` 에 락파일 정리 추가
 - LandRegisterAutomation: `/gov24-chrome-profile` 에 락파일 정리 추가 (동반 수정)
 
-### 5. IrosAutomation.java — extractSido() 폴백 `-전체-` 드롭다운 불일치
-- **위치**: line ~1072, `extractSido()` 메서드
-- **문제**: 인식되지 않는 주소에서 `-전체-` 로 폴백하는데, IROS 드롭다운에 해당 옵션이 없으면 예외 발생
-- **영향**: 비표준 주소 등기부등본 다운로드 실패
+### ~~5. IrosAutomation.java — extractSido() 폴백 `-전체-` 드롭다운 불일치~~ ✅ 수정완료
+- 미매칭 시 `-전체-` 대신 `""` 반환, 호출부에서 `sido.isEmpty()` 시 `selectByIndex(0)` (첫 번째 옵션=전체) 선택
+- 기존 알려진 시/도 경로 변경 없음
 
 ---
 

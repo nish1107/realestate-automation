@@ -49,15 +49,12 @@
 - 인페이지 경로: `button.list-btn` 순회하며 regex `(?<![0-9])N동` 매칭 (폴백: 첫 번째 버튼)
 - 테스트: "탑실로 152 210동 1501호" → 201동→210동 정확히 선택, PDF 저장 성공
 
-### 9. Gov24Automation.java — tryGov24() 집합/일반 모두 실패 시 로그 없음
-- **위치**: `tryGov24()`, lines ~543–546
-- **문제**: 집합건물 폼과 일반건물 폼 모두 `fillBuildingForm` 실패 시 최종 실패 로그가 없음
-- **영향**: 디버깅 시 실패 원인 파악 어려움
+### ~~9. Gov24Automation.java — tryGov24() 집합/일반 모두 실패 시 로그 없음~~ ✅ 수정완료
+- 두 번째 `fillBuildingForm` 반환값 캡처 후 `[최종실패]` 로그 추가
 
-### 10. Gov24Automation.java — handleBuildingSearchPopup() 성공 검증 없이 true 반환
-- **위치**: `handleBuildingSearchPopup()` 메서드
-- **문제**: `anyResultSelected=true` 를 반환하지만 실제로 주소 필드가 채워졌는지 확인하지 않음
-- **영향**: 팝업 처리 실패를 성공으로 오인할 수 있음
+### ~~10. Gov24Automation.java — handleBuildingSearchPopup() 성공 검증 없이 true 반환~~ ✅ 수정완료
+- 메인 창 복귀 후 visible text input 값 JS 검증 추가
+- 필드 비어있으면 `anyResultSelected=false`로 전환 → 호출부 재시도 트리거
 
 ---
 

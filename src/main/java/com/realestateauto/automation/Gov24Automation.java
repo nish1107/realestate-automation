@@ -272,7 +272,10 @@ public class Gov24Automation {
         if (!success) {
             logger.accept("[재시도] 집합 대장구분 검색 실패 - 일반으로 재시도...");
             navigateToBuildingService(driver);
-            fillBuildingForm(driver, parts, "일반");
+            boolean success2 = fillBuildingForm(driver, parts, "일반");
+            if (!success2) {
+                logger.accept("[최종실패] 집합/일반 모두 실패: " + parts.buildingAddress);
+            }
         }
     }
 
@@ -1301,6 +1304,25 @@ public class Gov24Automation {
         saveScreenshot(driver, "gov24_after_building_select");
         logger.accept("건물 선택 후 폼 URL: " + driver.getCurrentUrl());
         logger.accept("건물 선택 후 버튼: " + getVisibleButtonTexts(driver));
+        // anyResultSelected=true여도 실제 주소 필드가 채워졌는지 검증 (메인 창 복귀 후)
+        if (anyResultSelected) {
+            try {
+                String filledVal = (String) ((JavascriptExecutor) driver).executeScript(
+                    "var ins=document.querySelectorAll('input[type=text],input:not([type])');" +
+                    "for(var i=0;i<ins.length;i++){" +
+                    "  var rc=ins[i].getBoundingClientRect();" +
+                    "  if(rc.width>0&&ins[i].value&&ins[i].value.trim().length>2)" +
+                    "    return ins[i].value.trim().substring(0,60);" +
+                    "}" +
+                    "return '';");
+                if (filledVal == null || filledVal.isEmpty()) {
+                    logger.accept("★ 팝업 선택됐으나 주소 필드 비어있음 - 실패로 처리");
+                    anyResultSelected = false;
+                } else {
+                    logger.accept("주소 필드 확인: " + filledVal);
+                }
+            } catch (Exception ignored) {}
+        }
         return anyResultSelected;
     }
 

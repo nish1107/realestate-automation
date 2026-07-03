@@ -530,7 +530,15 @@ public class IrosAutomation {
         Thread.sleep(300L);
         this.elapsed(tNext1, "\ub2e4\uc74c(1) \ud398\uc774\uc9c0 \uc804\ud658");
         this.logger.accept("\uc18c\uc7ac\uc9c0\ubc88 \uc120\ud0dd \ud654\uba74 \uc9c4\uc785. \ud56d\ubaa9 \uc120\ud0dd \uc911...");
-        this.selectResultByUnit(driver, aptUnit, true);
+        { boolean sel2 = false;
+          for (int retry = 0; retry < 3 && !sel2; retry++) {
+              if (retry > 0) {
+                  this.logger.accept("[재시도] " + retry + "회 - 소재지번 그리드 렌더링 대기");
+                  Thread.sleep(1500L);
+              }
+              sel2 = this.selectResultByUnit(driver, aptUnit, true);
+          }
+        }
         Thread.sleep(500L);
         this.dismissExistingCartPopup(driver);
         Thread.sleep(500L);

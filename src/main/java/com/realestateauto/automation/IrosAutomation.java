@@ -1130,10 +1130,6 @@ public class IrosAutomation {
         if (m.find()) {
             return m.group(1).replaceAll("\\s+", " ").trim();
         }
-        m = Pattern.compile("([A-Za-z]+동\\s*\\d+호)").matcher(address);
-        if (m.find()) {
-            return m.group(1).replaceAll("\\s+", " ").trim();
-        }
         m = Pattern.compile("(\\d+\ub3d9)").matcher(address);
         if (m.find()) {
             return m.group(1);

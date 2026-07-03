@@ -473,37 +473,9 @@ public class IrosAutomation {
         }
         this.logger.accept("\ub3d9\ud638\uc218 \ub9e4\uce6d: " + aptUnit);
         boolean sel = this.selectResultByUnit(driver, aptUnit, true);
-        if (!sel) {
-            sel = this.selectFirstRow(driver);
-            if (sel) this.logger.accept("[폴백] 첫 번째 결과 행 선택");
-        }
         Thread.sleep(500L);
         this.dismissExistingCartPopup(driver);
         return sel;
-    }
-
-    private boolean selectFirstRow(ChromeDriver driver) {
-        try {
-            for (WebElement row : driver.findElements(By.cssSelector("tr"))) {
-                Object t = driver.executeScript("return (arguments[0].innerText||arguments[0].textContent||'').trim();", row);
-                String text = t != null ? t.toString() : "";
-                if (text.length() < 5) continue;
-                List<WebElement> tds = row.findElements(By.tagName("td"));
-                if (tds.isEmpty()) continue;
-                List<WebElement> radios = row.findElements(By.cssSelector("input[type='radio'], input[type='checkbox']"));
-                if (!radios.isEmpty()) {
-                    driver.executeScript("arguments[0].click();", radios.get(0));
-                } else {
-                    ((WebElement)tds.get(0)).click();
-                }
-                this.logger.accept("[첫행클릭] " + text.substring(0, Math.min(80, text.length())));
-                Thread.sleep(300L);
-                return true;
-            }
-        } catch (Exception e) {
-            this.logger.accept("[첫행오류] " + e.getMessage());
-        }
-        return false;
     }
 
     private void searchAndDownload(ChromeDriver driver, WebDriverWait wait, String address) throws Exception {

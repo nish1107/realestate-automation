@@ -471,8 +471,15 @@ public class IrosAutomation {
             if (Boolean.TRUE.equals(hasContent)) { this.logger.accept("[\uadf8\ub9ac\ub4dc] \uacb0\uacfc \ud14d\uc2a4\ud2b8 \uac10\uc9c0 (JS)"); break; }
             Thread.sleep(500L);
         }
-        this.logger.accept("\ub3d9\ud638\uc218 \ub9e4\uce6d: " + aptUnit);
-        boolean sel = this.selectResultByUnit(driver, aptUnit, true);
+        this.logger.accept("동호수 매칭: " + aptUnit);
+        boolean sel = false;
+        for (int retry = 0; retry < 3 && !sel; retry++) {
+            if (retry > 0) {
+                this.logger.accept("[재시도] " + retry + "회 - 그리드 렌더링 대기 후 재시도");
+                Thread.sleep(1500L);
+            }
+            sel = this.selectResultByUnit(driver, aptUnit, true);
+        }
         Thread.sleep(500L);
         this.dismissExistingCartPopup(driver);
         return sel;

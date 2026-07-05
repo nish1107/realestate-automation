@@ -36,14 +36,14 @@
 - **위치**: `clickBuildingDongSearchAndSelect` (약 1783줄), `clickHoSearchAndSelect` (약 1928줄)
 - **문제**: Thread.sleep(1500) 후 창 개수 비교 → 느린 사이트에서 팝업이 1.5초 내 안 열리면 인페이지 분기로 잘못 빠짐
 - **수정 방향**: 1.5초 고정 → 최대 5초 폴링(500ms 간격)으로 창 열림 감지
-- **상태**: [ ] 미완료
+- **상태**: [x] 완료 - 두 메서드 모두 최대 5초 폴링 루프로 변경
 
 ### [P4] Gov24 - 동/호명칭 선택 결과 void 반환 → 실패해도 신청하기 진행
 - **파일**: Gov24Automation.java
 - **위치**: `fillBuildingForm` (약 1119, 1122줄) → `clickBuildingDongSearchAndSelect`, `clickHoSearchAndSelect` 호출
 - **문제**: 두 메서드 void 반환 → 동/호 선택 실패해도 신청하기 버튼으로 이어짐 → 빈 폼 신청
 - **수정 방향**: 메서드를 boolean 반환으로 변경, 실패 시 로그 출력 후 return false
-- **상태**: [ ] 미완료
+- **상태**: [x] 완료 - 두 메서드 boolean 반환 변경, fillBuildingForm에서 실패 시 return false 추가
 
 ### [P5] IROS - 파일 다운로드 실패가 성공처럼 보임
 - **파일**: IrosAutomation.java

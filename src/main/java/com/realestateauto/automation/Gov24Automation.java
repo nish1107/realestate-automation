@@ -1116,12 +1116,19 @@ public class Gov24Automation {
         // ── 건물동명칭 검색 → 선택 ─────────────────────────────────────────────
         Thread.sleep(600);
         saveScreenshot(driver, "gov24_before_dong_search");
-        clickBuildingDongSearchAndSelect(driver, parts.dong);
+        // P4: 동/호 선택 실패 시 신청 중단
+        if (!clickBuildingDongSearchAndSelect(driver, parts.dong)) {
+            logger.accept("[P4] 동명칭 선택 실패, 신청 중단");
+            return false;
+        }
 
         // ── 호명칭 검색 → 선택 ────────────────────────────────────────────────
         if (!parts.ho.isEmpty()) {
             Thread.sleep(600);
-            clickHoSearchAndSelect(driver, parts.ho);
+            if (!clickHoSearchAndSelect(driver, parts.ho)) {
+                logger.accept("[P4] 호명칭 선택 실패, 신청 중단");
+                return false;
+            }
         }
 
         saveScreenshot(driver, "gov24_before_submit");
@@ -1756,7 +1763,7 @@ public class Gov24Automation {
         return result;
     }
 
-    private void clickBuildingDongSearchAndSelect(ChromeDriver driver, String dong) throws InterruptedException {
+    private boolean clickBuildingDongSearchAndSelect(ChromeDriver driver, String dong) throws InterruptedException {
         Set<String> beforeHandles = driver.getWindowHandles();
         String mainHandle = driver.getWindowHandle();
 
@@ -1778,10 +1785,17 @@ public class Gov24Automation {
                 "}" +
                 "return false;"));
             logger.accept("건물동명칭 검색 클릭: " + clicked);
-        } catch (Exception e) { logger.accept("건물동명칭 검색 클릭 오류: " + e.getMessage()); return; }
+        } catch (Exception e) { logger.accept("건물동명칭 검색 클릭 오류: " + e.getMessage()); return false; }
 
-        Thread.sleep(1500);
-        Set<String> afterHandles = driver.getWindowHandles();
+        // P3: 창 열림 최대 5초 폴링(500ms 간격) → 고정 1.5초 대기 제거
+        boolean dongOk = false;
+        Set<String> afterHandles = beforeHandles;
+        long p3WinEnd = System.currentTimeMillis() + 5000;
+        while (System.currentTimeMillis() < p3WinEnd) {
+            Thread.sleep(500);
+            afterHandles = driver.getWindowHandles();
+            if (afterHandles.size() > beforeHandles.size()) break;
+        }
 
         if (afterHandles.size() > beforeHandles.size()) {
             // 새 창에서 동명칭 목록 선택
@@ -1824,6 +1838,7 @@ public class Gov24Automation {
                         "}" +
                         "return 'not_found';", dongLabel);
                     logger.accept("동명칭 팝업 선택: " + result);
+                    dongOk = !"not_found".equals(result);
                     Thread.sleep(1000);
                     for (int w = 0; w < 10; w++) {
                         Thread.sleep(500);
@@ -1892,11 +1907,13 @@ public class Gov24Automation {
                 if (!"not_found".equals(result)) dongSelected = true;
             }
             logger.accept("동명칭 선택 결과: " + (dongSelected ? "성공" : "실패"));
+            dongOk = dongSelected;
         }
         Thread.sleep(1500);
+        return dongOk;
     }
 
-    private void clickHoSearchAndSelect(ChromeDriver driver, String ho) throws InterruptedException {
+    private boolean clickHoSearchAndSelect(ChromeDriver driver, String ho) throws InterruptedException {
         Set<String> beforeHandles = driver.getWindowHandles();
         String mainHandle = driver.getWindowHandle();
 
@@ -1923,10 +1940,17 @@ public class Gov24Automation {
                 "if(lastSrc){lastSrc.scrollIntoView({block:'center'});lastSrc.click();return true;}" +
                 "return false;"));
             logger.accept("호명칭 검색 클릭: " + clicked);
-        } catch (Exception e) { logger.accept("호명칭 검색 클릭 오류: " + e.getMessage()); return; }
+        } catch (Exception e) { logger.accept("호명칭 검색 클릭 오류: " + e.getMessage()); return false; }
 
-        Thread.sleep(1500);
-        Set<String> afterHandles = driver.getWindowHandles();
+        // P3: 창 열림 최대 5초 폴링(500ms 간격) → 고정 1.5초 대기 제거
+        boolean hoOk = false;
+        Set<String> afterHandles = beforeHandles;
+        long p3WinEnd = System.currentTimeMillis() + 5000;
+        while (System.currentTimeMillis() < p3WinEnd) {
+            Thread.sleep(500);
+            afterHandles = driver.getWindowHandles();
+            if (afterHandles.size() > beforeHandles.size()) break;
+        }
 
         if (afterHandles.size() > beforeHandles.size()) {
             // 새 창에서 호명칭 목록 선택
@@ -1967,6 +1991,7 @@ public class Gov24Automation {
                         "}" +
                         "return 'not_found';", ho);
                     logger.accept("호명칭 팝업 선택: " + result);
+                    hoOk = !"not_found".equals(result);
                     // 실패 시 HTML 덤프
                     if ("not_found".equals(result)) {
                         try {
@@ -2254,8 +2279,10 @@ public class Gov24Automation {
             }
 
             logger.accept("호명칭 선택 결과: " + (hoSelected ? "성공" : "실패"));
+            hoOk = hoSelected;
         }
         Thread.sleep(1500);
+        return hoOk;
     }
 
     /** 라디오 버튼 선택: label for→input 찾아서 input 직접 JS 클릭 (Nuxt/Vue 확실 업데이트) */

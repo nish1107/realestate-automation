@@ -82,6 +82,7 @@ public class IrosAutomation {
             }
             Thread.sleep(300L);
         }
+        this.logger.accept("[P8경고] \"" + text + "\" 타임아웃 - 처리 중 상태 지속 (" + maxMs + "ms)");
     }
 
     private void waitForPageChange(ChromeDriver driver, String prevText, int maxMs) throws InterruptedException {

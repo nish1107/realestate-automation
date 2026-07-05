@@ -414,7 +414,8 @@ public class Gov24Automation {
             } else {
                 clickLoginSubmitButton(driver, pwInputs);
             }
-            waitForText(driver, 300000, "로그아웃");
+            // P7: CAPTCHA 없는 자동 로그인은 30초, CAPTCHA 있는 경우는 5분 (이미 waitForCaptchaAndEnter에서 완료)
+            waitForText(driver, hasCaptcha ? 300000 : 30000, "로그아웃");
             } // end !isLoggedIn block
             // 초기 로그인 후 비밀번호 변경 페이지 건너뛰기
             try {

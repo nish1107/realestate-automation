@@ -459,13 +459,26 @@ public class IrosAutomation {
             this.waitForTextGone(driver, 5000, "\ucc98\ub9ac \uc911");
             Thread.sleep(300L);
         }
+        // P2: 차=0(검색결과없음) → 검색재실행(최대 2회)
+        for (int p2r = 0; p2r < 2 && (textLenAfter - textLenBefore) == 0; p2r++) {
+            this.logger.accept("[P2재시도] 차=0 → 검색 재실행 (" + (p2r+1) + "/2)");
+            try {
+                new Actions((WebDriver)driver).click(addrInput).pause(java.time.Duration.ofMillis(300)).sendKeys(Keys.ENTER).pause(java.time.Duration.ofMillis(100)).perform();
+            } catch (Exception p2e) { this.logger.accept("[P2오류] " + p2e.getMessage()); break; }
+            Thread.sleep(1500L);
+            this.waitForTextGone(driver, 10000, "처리 중");
+            Thread.sleep(300L);
+            afterSearchText = this.getPageText(driver);
+            textLenAfter = afterSearchText.length();
+            this.logger.accept("[P2재시도결과] 차=" + (textLenAfter - textLenBefore));
+        }
         // WebSquare \uadf8\ub9ac\ub4dc \ub80c\ub354\ub9c1 \ub300\uae30: JS innerText\ub85c \ud14d\uc2a4\ud2b8 \uac10\uc9c0 (\ucd5c\ub300 12\ucd08)
         long gridWaitEnd = System.currentTimeMillis() + 12000;
         while (System.currentTimeMillis() < gridWaitEnd) {
             Boolean hasContent = (Boolean) driver.executeScript(
                 "var trs=document.querySelectorAll('tr');" +
                 "for(var i=0;i<trs.length;i++){" +
-                "  if((trs[i].innerText||trs[i].textContent||'').trim().length>5) return true;" +
+                "  if(trs[i].querySelector('td') && (trs[i].innerText||trs[i].textContent||'').trim().length>5) return true;" +
                 "}" +
                 "return false;");
             if (Boolean.TRUE.equals(hasContent)) { this.logger.accept("[\uadf8\ub9ac\ub4dc] \uacb0\uacfc \ud14d\uc2a4\ud2b8 \uac10\uc9c0 (JS)"); break; }
@@ -527,6 +540,16 @@ public class IrosAutomation {
         Thread.sleep(500L);
         this.dismissExistingCartPopup(driver);
         this.waitForPageChange(driver, prevText, 6000);
+        { for (int p1r = 0; p1r < 2 && !this.getPageText(driver).contains("소재지번"); p1r++) {
+              this.logger.accept("[P1재시도] 다음(1) 후 소재지번 화면 미감지, 재클릭 (" + (p1r+1) + "/2)");
+              String p1Prev1 = this.getPageText(driver);
+              this.clickByTextAll(driver, "다음");
+              Thread.sleep(500L);
+              this.dismissExistingCartPopup(driver);
+              this.waitForPageChange(driver, p1Prev1, 6000);
+          }
+          if (!this.getPageText(driver).contains("소재지번")) { this.logger.accept("[P1경고] 다음(1) 후 소재지번 화면 진입 실패"); }
+        }
         Thread.sleep(300L);
         this.elapsed(tNext1, "\ub2e4\uc74c(1) \ud398\uc774\uc9c0 \uc804\ud658");
         this.logger.accept("\uc18c\uc7ac\uc9c0\ubc88 \uc120\ud0dd \ud654\uba74 \uc9c4\uc785. \ud56d\ubaa9 \uc120\ud0dd \uc911...");
@@ -549,6 +572,16 @@ public class IrosAutomation {
         Thread.sleep(500L);
         this.dismissExistingCartPopup(driver);
         this.waitForPageChange(driver, prevText, 8000);
+        { for (int p1r = 0; p1r < 2 && !this.getPageText(driver).contains("발급"); p1r++) {
+              this.logger.accept("[P1재시도] 다음(2) 후 발급신청 화면 미감지, 재클릭 (" + (p1r+1) + "/2)");
+              String p1Prev2 = this.getPageText(driver);
+              this.clickByTextAll(driver, "다음");
+              Thread.sleep(500L);
+              this.dismissExistingCartPopup(driver);
+              this.waitForPageChange(driver, p1Prev2, 8000);
+          }
+          if (!this.getPageText(driver).contains("발급")) { this.logger.accept("[P1경고] 다음(2) 후 발급신청 화면 진입 실패"); }
+        }
         Thread.sleep(300L);
         this.elapsed(tNext2, "\ub2e4\uc74c(2) \ud398\uc774\uc9c0 \uc804\ud658");
         this.logger.accept("\ubc1c\uae09 \uc2e0\uccad \ud654\uba74 URL: " + driver.getCurrentUrl());
@@ -1020,7 +1053,7 @@ public class IrosAutomation {
                     this.logger.accept("=== \ud30c\uc77c \ub2e4\uc6b4\ub85c\ub4dc \uc644\ub8cc (\uc774\ub984 \ubcc0\uacbd \uc2e4\ud328): " + downloaded + " ===");
                 }
             } else {
-                this.logger.accept("=== \uc800\uc7a5 \uc644\ub8cc (\ud30c\uc77c \uc704\uce58 \ud655\uc778: " + this.savePath + ") ===");
+                this.logger.accept("=== PDF 다운로드 실패 - 30초 내 파일 생성 안됨 (경로: " + this.savePath + ") ===");
             }
         } else {
             this.logger.accept("\uc800\uc7a5 \ubc84\ud2bc\uc744 \ucc3e\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4. \uc5f4\ub78c \ud654\uba74\uc5d0\uc11c \uc218\ub3d9\uc73c\ub85c \uc800\uc7a5\ud574\uc8fc\uc138\uc694.");

@@ -464,6 +464,7 @@ public class IrosAutomation {
         for (int p2r = 0; p2r < 2 && (textLenAfter - textLenBefore) == 0; p2r++) {
             this.logger.accept("[P2재시도] 차=0 → 검색 재실행 (" + (p2r+1) + "/2)");
             try {
+                try { addrInput = driver.findElement(By.id((String)"mf_wfm_potal_main_wfm_content_sbx_smpl_swrd___input")); } catch (Exception re) {}
                 new Actions((WebDriver)driver).click(addrInput).pause(java.time.Duration.ofMillis(300)).sendKeys(Keys.ENTER).pause(java.time.Duration.ofMillis(100)).perform();
             } catch (Exception p2e) { this.logger.accept("[P2오류] " + p2e.getMessage()); break; }
             Thread.sleep(1500L);
@@ -601,6 +602,32 @@ public class IrosAutomation {
 
     private boolean selectResultByUnit(ChromeDriver driver, String aptUnit, boolean skipIfSelected) {
         if (aptUnit.isEmpty()) {
+            // 단독주택 등 호 없는 경우: 결과 행 1개면 자동 선택
+            try {
+                List<WebElement> allRows = driver.findElements(By.cssSelector((String)"tr"));
+                List<WebElement> dataRows = new java.util.ArrayList<>();
+                for (WebElement r : allRows) {
+                    try {
+                        if (!r.findElements(By.tagName((String)"td")).isEmpty()) {
+                            Object jsText = driver.executeScript("return (arguments[0].innerText||arguments[0].textContent||'').trim();", r);
+                            String rowText = jsText != null ? jsText.toString() : "";
+                            if (!rowText.isEmpty()) dataRows.add(r);
+                        }
+                    } catch (Exception ex) {}
+                }
+                if (dataRows.size() == 1) {
+                    WebElement r = dataRows.get(0);
+                    List radios = r.findElements(By.cssSelector((String)"input[type='radio'], input[type='checkbox']"));
+                    if (!radios.isEmpty()) {
+                        driver.executeScript("arguments[0].click();", new Object[]{radios.get(0)});
+                    } else {
+                        ((WebElement)r.findElements(By.tagName((String)"td")).get(0)).click();
+                    }
+                    this.logger.accept("단독주택 단일 행 자동 선택");
+                    Thread.sleep(500L);
+                    return true;
+                }
+            } catch (Exception ex) {}
             return false;
         }
         String dong = this.parseDong(aptUnit);

@@ -6,3 +6,8 @@ build/
 *.ipr
 *.iws
 realestate-config.properties
+# 테스트 실행 파일 (로컬 전용)
+src/main/java/com/realestateauto/TestRun.java
+src/main/java/com/realestateauto/TestBuilding.java
+# 로그 파일
+*.log

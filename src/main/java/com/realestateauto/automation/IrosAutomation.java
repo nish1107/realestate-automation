@@ -1252,6 +1252,7 @@ public class IrosAutomation {
     private String extractRoadAddress(String address) {
         String cleaned = address.replaceAll("(\uc11c\uc6b8\ud2b9\ubcc4\uc2dc|\ubd80\uc0b0\uad11\uc5ed\uc2dc|\ub300\uad6c\uad11\uc5ed\uc2dc|\uc778\ucc9c\uad11\uc5ed\uc2dc|\uad11\uc8fc\uad11\uc5ed\uc2dc|\ub300\uc804\uad11\uc5ed\uc2dc|\uc6b8\uc0b0\uad11\uc5ed\uc2dc|\uc138\uc885\ud2b9\ubcc4\uc790\uce58\uc2dc|\uacbd\uae30\ub3c4|\uac15\uc6d0\ub3c4|\ucda9\uccad\ubd81\ub3c4|\ucda9\uccad\ub0a8\ub3c4|\uc804\ub77c\ubd81\ub3c4|\uc804\ub77c\ub0a8\ub3c4|\uacbd\uc0c1\ubd81\ub3c4|\uacbd\uc0c1\ub0a8\ub3c4|\uc81c\uc8fc\ud2b9\ubcc4\uc790\uce58\ub3c4)\\s*", "").replaceAll("[\uac00-\ud7a3]+\uc2dc\\s+[\uac00-\ud7a3]+\uad6c\\s+", "").replaceAll("[\uac00-\ud7a3]+\uc2dc\\s+[\uac00-\ud7a3]+\uad70\\s+", "").replaceAll("[\uac00-\ud7a3]+\uc2dc\\s+", "").trim();
         cleaned = cleaned.replaceAll("([\uac00-\ud7a3]+(\ub85c|\uae38|\ub300\ub85c))(\\d+)", "$1 $3");
+        cleaned = cleaned.replaceAll("([\uac00-\ud7a3]+\ub3d9)(\\d+)", "$1 $2");
         cleaned = cleaned.replaceAll("(\\d+\ub3d9)(\\d+\ud638)", "$1 $2");
         return cleaned.replaceAll("\\s+", " ").trim();
     }

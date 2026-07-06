@@ -52,6 +52,7 @@ public class IrosAutomation {
     private final String paymentPassword;
     private final Consumer<String> logger;
     private final String recordType;
+    private boolean duplicatePaymentRetried = false;
 
     public IrosAutomation(String savePath, String irosId, String irosPassword, String paymentAccount, String paymentPassword, String recordType, Consumer<String> logger) {
         this.savePath = savePath;
@@ -684,7 +685,7 @@ public class IrosAutomation {
     /*
      * Enabled aggressive block sorting
      */
-    private void handleIssuancePage(ChromeDriver driver, WebDriverWait wait, String aptUnit, String address) throws InterruptedException {
+    private void handleIssuancePage(ChromeDriver driver, WebDriverWait wait, String aptUnit, String address) throws Exception {
         String prev;
         long t;
         this.logger.accept("=== \uc5f4\ub78c\u00b7\ubc1c\uae09 \uc2e0\uccad \ud750\ub984 \uc2dc\uc791 ===");
@@ -735,7 +736,18 @@ public class IrosAutomation {
             this.clickByTextAll(driver, "\uc774\ub3d9");
             Thread.sleep(1000L);
             String afterMoveText = this.getPageText(driver);
-            if (afterMoveText.contains("\uacb0\uc81c\ub300\uc0c1 \ud655\uc778") || afterMoveText.contains("\uc7a5\ubc14\uad6c\ub2c8")) {
+            if ((afterMoveText.contains("\uacb0\uc81c\ub300\uc0c1 \ud655\uc778") || afterMoveText.contains("\uc7a5\ubc14\uad6c\ub2c8")) && !this.duplicatePaymentRetried) {
+                this.logger.accept("[\uc911\ubcf5\uacb0\uc81c] \uce74\ud2b8 \uc815\ub9ac \ud6c4 \uc7ac\uc2dc\ub3c4...");
+                this.duplicatePaymentRetried = true;
+                this.clearCartItems(driver);
+                Thread.sleep(500L);
+                String prevNav = this.getPageText(driver);
+                this.clickByTextAll(driver, "\ubd80\ub3d9\uc0b0 \uc5f4\ub78c·\ubc1c\uae09");
+                this.waitForPageChange(driver, prevNav, 7000);
+                Thread.sleep(2500L);
+                this.searchAndDownload(driver, wait, address);
+                return;
+            } else if (afterMoveText.contains("\uacb0\uc81c\ub300\uc0c1 \ud655\uc778") || afterMoveText.contains("\uc7a5\ubc14\uad6c\ub2c8")) {
                 this.logger.accept("[\uc911\ubcf5\uacb0\uc81c] \uacb0\uc81c\ub300\uc0c1 \ud655\uc778 \ud398\uc774\uc9c0 - \uacb0\uc81c \uc2e4\ud589");
                 String prevCart = afterMoveText;
                 if (!(this.clickByTextAll(driver, "\uc77c\uad04\uacb0\uc81c") || this.clickByTextAll(driver, "\uacb0\uc81c\ud558\uae30") || this.clickByTextAll(driver, "\uacb0\uc81c"))) {
@@ -1278,8 +1290,8 @@ public class IrosAutomation {
             "    for (var d = 0; d < 5; d++) {" +
             "      if (!p) break;" +
             "      var rads = p.querySelectorAll('input[type=radio]');" +
-            "      if (rads.length > 0) { rads[0].click(); return true; }" +
-            "      if (p.closest) { var tr = p.closest('tr'); if (tr) { var r2 = tr.querySelectorAll('input[type=radio]'); if (r2.length > 0) { r2[0].click(); return true; } } }" +
+            "      if (rads.length > 0) { rads[0].click(); rads[0].dispatchEvent(new Event('change',{bubbles:true})); return true; }" +
+            "      if (p.closest) { var tr = p.closest('tr'); if (tr) { var r2 = tr.querySelectorAll('input[type=radio]'); if (r2.length > 0) { r2[0].click(); r2[0].dispatchEvent(new Event('change',{bubbles:true})); return true; } } }" +
             "      p = p.parentElement;" +
             "    }" +
             "  }" +

@@ -32,6 +32,9 @@ public class MainController {
     @FXML private CheckBox registryCheck;
     @FXML private CheckBox buildingCheck;
     @FXML private CheckBox landCheck;
+    @FXML private HBox registryTypeBox;
+    @FXML private RadioButton malsoRadio;
+    @FXML private RadioButton yuhyoRadio;
     @FXML private HBox addressTypeBox;
     @FXML private RadioButton roadNameRadio;
     @FXML private RadioButton jibunRadio;
@@ -50,6 +53,7 @@ public class MainController {
 
     private final AppConfig config = new AppConfig();
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final ToggleGroup registryTypeGroup = new ToggleGroup();
     private final ToggleGroup addressTypeGroup = new ToggleGroup();
 
     private static final DateTimeFormatter LOG_FILE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
@@ -88,6 +92,18 @@ public class MainController {
                 ? System.getProperty("user.home") + "\\Desktop\\부동산서류"
                 : config.get("savePath"));
 
+        malsoRadio.setToggleGroup(registryTypeGroup);
+        yuhyoRadio.setToggleGroup(registryTypeGroup);
+        if ("현재유효사항".equals(config.get("iros.recordType"))) {
+            yuhyoRadio.setSelected(true);
+        } else {
+            malsoRadio.setSelected(true);
+        }
+        registryCheck.selectedProperty().addListener((obs, old, val) -> {
+            registryTypeBox.setVisible(val);
+            registryTypeBox.setManaged(val);
+        });
+
         roadNameRadio.setToggleGroup(addressTypeGroup);
         jibunRadio.setToggleGroup(addressTypeGroup);
         if ("지번".equals(config.get("gov24.addressType"))) {
@@ -109,6 +125,7 @@ public class MainController {
         config.set("iros.paymentPassword", irosPaymentField.getText());
         config.set("gov24.id", gov24IdField.getText().trim());
         config.set("gov24.password", gov24PasswordField.getText());
+        config.set("iros.recordType", yuhyoRadio.isSelected() ? "현재유효사항" : "말소사항포함");
         config.set("gov24.addressType", jibunRadio.isSelected() ? "지번" : "도로명");
         config.set("serve.id", serveIdField.getText().trim());
         config.set("serve.password", servePasswordField.getText());
@@ -147,8 +164,9 @@ public class MainController {
         currentTask = executor.submit(() -> {
             try {
                 if (registryCheck.isSelected()) {
-                    log("=== 등기부등본 다운로드 시작 ===");
-                    new RegistryService(config).download(address, savePath, this::log);
+                    String recordType = yuhyoRadio.isSelected() ? "현재유효사항" : "말소사항포함";
+                    log("=== 등기부등본 다운로드 시작 [" + recordType + "] ===");
+                    new RegistryService(config).download(address, savePath, recordType, this::log);
                 }
                 if (buildingCheck.isSelected()) {
                     String addrType = jibunRadio.isSelected() ? "지번" : "도로명";

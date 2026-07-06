@@ -51,14 +51,16 @@ public class IrosAutomation {
     private final String paymentAccount;
     private final String paymentPassword;
     private final Consumer<String> logger;
+    private final String recordType;
 
-    public IrosAutomation(String savePath, String irosId, String irosPassword, String paymentAccount, String paymentPassword, Consumer<String> logger) {
+    public IrosAutomation(String savePath, String irosId, String irosPassword, String paymentAccount, String paymentPassword, String recordType, Consumer<String> logger) {
         this.savePath = savePath;
         this.irosId = irosId == null ? "" : irosId;
         this.irosPassword = irosPassword == null ? "" : irosPassword;
         this.paymentAccount = paymentAccount == null ? "" : paymentAccount;
         this.paymentPassword = paymentPassword == null ? "" : paymentPassword;
         this.logger = logger;
+        this.recordType = recordType == null ? "\ub9d0\uc18c\uc0ac\ud56d\ud3ec\ud568" : recordType;
     }
 
     private boolean waitForText(ChromeDriver driver, int maxMs, String ... keywords) throws InterruptedException {
@@ -691,6 +693,10 @@ public class IrosAutomation {
         if (pageText.contains("\uc6a9\ub3c4 \ubc0f \ucd94\uac00\uc0ac\ud56d") || pageText.contains("\ub4f1\uae30\uae30\ub85d\uc720\ud615")) {
             t = this.mark();
             this.logger.accept("[\ub2e8\uacc41] \uc6a9\ub3c4 \uc120\ud0dd \ud654\uba74 - \ub2e4\uc74c \ud074\ub9ad");
+            if (pageText.contains("\ub4f1\uae30\uae30\ub85d\uc720\ud615")) {
+                this.selectRecordType(driver);
+                Thread.sleep(300L);
+            }
             prev = pageText;
             this.clickByTextAll(driver, "\ub2e4\uc74c");
             this.waitForPageChange(driver, prev, 5000);
@@ -1255,6 +1261,36 @@ public class IrosAutomation {
         cleaned = cleaned.replaceAll("([\uac00-\ud7a3]+\ub3d9)(\\d+)", "$1 $2");
         cleaned = cleaned.replaceAll("(\\d+\ub3d9)(\\d+\ud638)", "$1 $2");
         return cleaned.replaceAll("\\s+", " ").trim();
+    }
+
+    private void selectRecordType(ChromeDriver driver) {
+        this.logger.accept("[\ub4f1\uae30\uae30\ub85d\uc720\ud615] " + this.recordType + " \uc120\ud0dd \uc2dc\ub3c4");
+        if ("\ub9d0\uc18c\uc0ac\ud56d\ud3ec\ud568".equals(this.recordType)) {
+            this.logger.accept("[\ub4f1\uae30\uae30\ub85d\uc720\ud615] \ub9d0\uc18c\uc0ac\ud56d\ud3ec\ud568 (\uae30\ubcf8\uac12)");
+            return;
+        }
+        Boolean result = (Boolean) driver.executeScript(
+            "var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);" +
+            "var node;" +
+            "while(node = walker.nextNode()) {" +
+            "  if (node.textContent.trim() === arguments[0]) {" +
+            "    var p = node.parentElement;" +
+            "    for (var d = 0; d < 5; d++) {" +
+            "      if (!p) break;" +
+            "      var rads = p.querySelectorAll('input[type=radio]');" +
+            "      if (rads.length > 0) { rads[0].click(); return true; }" +
+            "      if (p.closest) { var tr = p.closest('tr'); if (tr) { var r2 = tr.querySelectorAll('input[type=radio]'); if (r2.length > 0) { r2[0].click(); return true; } } }" +
+            "      p = p.parentElement;" +
+            "    }" +
+            "  }" +
+            "}" +
+            "return false;",
+            this.recordType
+        );
+        if (!Boolean.TRUE.equals(result)) {
+            this.clickByTextAll(driver, this.recordType);
+        }
+        this.logger.accept("[\ub4f1\uae30\uae30\ub85d\uc720\ud615] \uc120\ud0dd \uc644\ub8cc");
     }
 
     private boolean clickByTextAll(ChromeDriver driver, String text) {

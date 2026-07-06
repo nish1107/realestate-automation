@@ -13,13 +13,13 @@ public class RegistryService {
         this.config = config;
     }
 
-    public void download(String address, String savePath, Consumer<String> logger) throws Exception {
+    public void download(String address, String savePath, String recordType, Consumer<String> logger) throws Exception {
         String irosId = config.get("iros.id");
         String irosPassword = config.get("iros.password");
         String paymentAccount = config.get("iros.paymentAccount");
         String paymentPassword = config.get("iros.paymentPassword");
         IrosAutomation automation = new IrosAutomation(
-            savePath, irosId, irosPassword, paymentAccount, paymentPassword, logger);
+            savePath, irosId, irosPassword, paymentAccount, paymentPassword, recordType, logger);
         automation.download(address);
     }
 }

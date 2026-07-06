@@ -34,6 +34,12 @@
                 <CheckBox fx:id="buildingCheck" text="건축물대장"/>
                 <CheckBox fx:id="landCheck" text="토지대장" disable="true" opacity="0.4"/>
             </HBox>
+            <HBox fx:id="registryTypeBox" spacing="12" alignment="CENTER_LEFT"
+                  style="-fx-padding: 2 0 0 2;">
+                <Label text="등기기록유형:" style="-fx-font-size: 12px; -fx-text-fill: #555;"/>
+                <RadioButton fx:id="malsoRadio" text="말소사항포함"/>
+                <RadioButton fx:id="yuhyoRadio" text="현재유효사항"/>
+            </HBox>
             <HBox fx:id="addressTypeBox" spacing="12" alignment="CENTER_LEFT"
                   visible="false" managed="false"
                   style="-fx-padding: 2 0 0 2;">

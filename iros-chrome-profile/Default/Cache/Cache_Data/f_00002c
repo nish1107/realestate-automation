@@ -1,0 +1,440 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="MS949">
+<meta http-equiv="Content-Type" content="text/html; charset=MS949">
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="format-detection" content="telephone=no">
+
+<meta name="referrer" content="no-referrer-when-downgrade" />
+
+<!-- <title></title> -->
+<title>인터넷등기소</title>
+<script type="text/javascript">
+    var WebSquareExternal = {
+            "baseURI"               : "/websquare/",
+            "w2xPath"               : "/ui/pm10/p0/potalmain/Pm10P0IrosMain.xml",
+            "w2xPathSub"            : "",
+            "strCryptedId"          : "",
+            "strUserId"             : "",
+            //인터셉터 invalidate 시에 로그인 페이지로 이동시키기 위한 셋팅 로직
+            "forwardLoginYn"        : "N",
+            //시스템 오픈 단계를 구분하기 위한 flag
+            "systemOpenLevel"       : "open",
+            //OTP발급가능여부를 구분하기 위한 flag
+            "otpIssuePsblYn"        : "Y",
+            //추가 파라메터 전달용
+            "linkParam"             : decodeURI(decodeURIComponent("null"))
+    };
+</script>
+<script type="text/javascript" src="/websquare/javascriptPluginAll.js"></script>
+
+<script type="text/javascript">
+
+    function getOSInfo (){
+	    var
+	        tp = navigator.platform,
+	        ua = navigator.userAgent,
+	        tem;
+	        
+	    //exlog("platform", tp);
+	    //exlog("userAgent", ua);
+	    var result = {};
+	    
+	    // platform
+	    if (tp == "Win32" || tp == "Win64"){
+	        if(ua.search("Windows Phone") >= 0){
+	            result.platform = "Windows Phone";
+	            result.name="Windows Phone";
+	        } else {
+	            result.platform = "WINDOWS";
+	        }
+	    } else if (tp == "MacIntel") {
+	        if((ua.search("iPhone") >= 0) || (ua.search("iPad") >= 0) || (ua.search("iPod") >= 0) || ("ontouchend" in document)){
+	            result.platform = "iOS";
+	            result.name="iOS";
+	        } else {
+	            result.platform = "MACOSX";
+	        }
+	    } else if (tp.search("Linux") >= 0) {
+	        if(ua.search("Android") >= 0){
+	            result.platform = "Android";
+	            result.name="Android";
+	        } else {
+	            result.platform = "LINUX";
+	        }
+	    } else if (tp == "iPhone Simulator") {
+	        result.platform = "iOS";
+	        result.name="iPhone Simulator";
+	    } else if (tp == "iPhone") {
+	        result.platform = "iOS";
+	        result.name="iPhone";
+	    } else if (tp == "iPad") {
+	        result.platform = "iOS";
+	        result.name="iPad";
+	    } else if (tp == "iPod") {
+	        result.platform = "iOS";
+	        result.name="iPod";
+	    } else {
+	        result.platform = "UNKNOWN";
+	    }
+	    
+	    // version, bit
+	    if(result.platform == "WINDOWS"){
+	        if(ua.indexOf("Windows NT 5.1") != -1) {result.version="5.1"; result.name="XP";}
+	        else if(ua.indexOf("Windows NT 5.2") != -1) {result.version="5.2"; result.name="XP";}
+	        else if(ua.indexOf("Windows NT 6.0") != -1) {result.version="6.0"; result.name="VISTA";}
+	        else if(ua.indexOf("Windows NT 6.1") != -1) {result.version="6.1"; result.name="7";}
+	        else if(ua.indexOf("Windows NT 6.2") != -1) {result.version="6.2"; result.name="8";}
+	        else if(ua.indexOf("Windows NT 6.3") != -1) {result.version="6.3"; result.name="8.1";}
+	        else if(ua.indexOf("Windows NT 10.0") != -1) {result.version="10.0"; result.name="10";}
+	        else if(ua.indexOf("Windows NT 11.0") != -1) {result.version="11.0"; result.name="11";}                                                                           
+	        else if(ua.indexOf("Windows NT") != -1){
+	            result.version="99"; result.name="NewVersion";
+	        } else {
+	            result.version="UNKNOWN"; result.name="UNKNOWN";
+	        }
+	        
+	        if(ua.indexOf("WOW64") != -1 || ua.indexOf("Win64") != -1) result.bit="64";
+	        else result.bit="32";
+	        // 2020.11.30 임동 QA, platform추가 요청 (11_0) -이니라인 작업완료
+	    } else if(result.platform == "MACOSX"){
+	        if((ua.indexOf("Mac OS X 10_5") || ua.indexOf("Mac OS X 10.5")) != -1) {result.version="10.5"; result.name="Leopard";}
+	        else if((ua.indexOf("Mac OS X 10_6") || ua.indexOf("Mac OS X 10.6")) != -1) {result.version="10.6"; result.name="Snow Leopard";}
+	        else if((ua.indexOf("Mac OS X 10_7") || ua.indexOf("Mac OS X 10.7")) != -1) {result.version="10.7"; result.name="Lion";}
+	        else if((ua.indexOf("Mac OS X 10_8") || ua.indexOf("Mac OS X 10.8")) != -1) {result.version="10.8"; result.name="Mountain Lion";}
+	        else if((ua.indexOf("Mac OS X 10_9") || ua.indexOf("Mac OS X 10.9")) != -1) {result.version="10.9"; result.name="Mavericks";}
+	        else if((ua.indexOf("Mac OS X 10_10") || ua.indexOf("Mac OS X 10.10")) != -1) {result.version="10.10"; result.name="Yosemite";}
+	        else if((ua.indexOf("Mac OS X 10_11") || ua.indexOf("Mac OS X 10.11")) != -1) {result.version="10.11"; result.name="El Capitan";}
+	        else if((ua.indexOf("Mac OS X 10_12") || ua.indexOf("Mac OS X 10.12")) != -1) {result.version="10.12"; result.name="Sierra";}
+	        else if((ua.indexOf("Mac OS X 10_13") || ua.indexOf("Mac OS X 10.13")) != -1) {result.version="10.13"; result.name="High Sierra";}
+	        else if((ua.indexOf("Mac OS X 10_14") || ua.indexOf("Mac OS X 10.14")) != -1) {result.version="10.14"; result.name="Mojave";}
+	        else if((ua.indexOf("Mac OS X 10_15") || ua.indexOf("Mac OS X 10.15")) != -1) {result.version="10.15"; result.name="Catalina";}
+	        else if((ua.indexOf("Mac OS X 11_0") || ua.indexOf("Mac OS X 11.0")) != -1) {result.version="11.0"; result.name="Big Sur";}
+	        // 2020.11.30 임동 QA, MAC OS unknown check로직 변경(Mac OS X → Mac OS)
+	        else if(ua.indexOf("Mac OS") != -1){
+	            result.version="10.99"; result.name="NewVersion";
+	        } else {
+	            result.version="UNKNOWN"; result.name="UNKNOWN";
+	        }
+	        result.bit = "64";
+	    } else if(result.platform == "LINUX"){
+	        result.version="UNKNOWN"; result.name="UNKNOWN";
+	        if(ua.indexOf("Linux x86_64") != -1) result.bit="64";
+	        else result.bit="32";
+	    } else {
+	        result.version="UNKNOWN"; result.name="UNKNOWN";
+	    }
+	    
+	    //exlog("TOUCHENEX_UTIL.getOSInfo.result", result);
+	    return result;
+	}
+
+	function isMobile () {
+	    //var ua = navigator.userAgent;
+	    //if (ua.match(/iPhone|iPad|Android|Windows CE|BlackBerry|Symbian|Windows Phone|webOS|Opera Mini|Opera Mobi|POLARIS|IEMobile|lgtelecom|nokia|SonyEricsson/i) != null || ua.match(/LG|SAMSUNG|Samsung/) != null){
+	    //    return true;
+	    //}else{
+	    //    return false;
+	    //}
+	    
+        var OSInfo = getOSInfo().platform;
+        if (OSInfo == "iOS" || OSInfo == "Android" || OSInfo == "Windows Phone") return true;
+        return false;
+	}
+	function isMac () {
+	    //var ua = navigator.userAgent;
+	    //if (ua.includes('mac os') || ua.includes('macintosh')){
+	    //    return true;
+	    //}else{
+	    //    return false;
+	    //}
+
+        var OSInfo = getOSInfo().platform;
+        if (OSInfo == "MACOSX") return true;
+        return false;
+	}
+	function isLinux () {
+	    //var ua = navigator.userAgent;
+	    //if (ua.includes('linux')){
+	    //    return true;
+	    //}else{
+	    //    return false;
+	    //}
+
+        var OSInfo = getOSInfo().platform;
+        if (OSInfo == "LINUX") return true;
+        return false;
+	}
+	function isWin () {
+        var OSInfo = getOSInfo().platform;
+        if (OSInfo == "WINDOWS") return true;
+        return false;
+    }
+	
+	console.log(">>> 모바일 여부 : "+isMobile()+", Mac여부 : "+isMac()+", Linux여부 : "+isLinux());
+	if (!isMobile() && !isMac()  && !isLinux()) {
+	    
+	    console.log(">>> xecureHSMMngInterface.js 순서 조정");
+	    document.write("<script type=\"text/javascript\" src=\"" + "/solution/AnySign/XecureHSMMng/xecureHSMMngInterface.js" + "?v=1;version=" + new Date().getTime() + "\"></scr"+"ipt>");
+	}
+	    
+	
+	document.write("<script type=\"text/javascript\" src=\"" + "/solution/AnySign/anySign4PCInterface.js" + "?v=1;version=" + new Date().getTime() + "\"></scr"+"ipt>");
+
+    
+</script>
+
+
+<script type="text/javascript">
+var s = '';
+s += '-----BEGIN CERTIFICATE-----\n';
+s += 'MIIE1TCCA72gAwIBAgIBQDANBgkqhkiG9w0BAQsFADCBkjELMAkGA1UEBhMCS1Ix\n';
+s += 'HjAcBgNVBAoTFVNvZnRmb3J1bSBDb3Jwb3JhdGlvbjEeMBwGA1UECxMVU2VjdXJp\n';
+s += 'dHkgUk5EIERpdmlzaW9uMRwwGgYDVQQDExNTb2Z0Zm9ydW0gUHVibGljIENBMSUw\n';
+s += 'IwYJKoZIhvcNAQkBFhZjYW1hc3RlckBzb2Z0Zm9ydW0uY29tMB4XDTE3MDcxODA2\n';
+s += 'MjkyNFoXDTI3MDcxNjA2MjkyNFoweTELMAkGA1UEBhMCS1IxEjAQBgNVBAoMCeuM\n';
+s += 'gOuyleybkDEYMBYGA1UECwwP67KV7JuQ7ZaJ7KCV7LKYMRcwFQYDVQQDDA53d3cu\n';
+s += 'aXJvcy5nby5rcjEjMCEGCSqGSIb3DQEJARYUZnJlZW1hbkBzY291cnQuZ28ua3Iw\n';
+s += 'ggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCoq3rSR8o2HbJDci3oWRZL\n';
+s += '+plpB1YWCq6O3lm5LLgOjupf9ZWAcIdvDa2QCcuIkt64taNY7VpsVuC87Mi/W87i\n';
+s += 'XTb9F0Z6taFwCdXTybJO7+kbAZbzQDDdn48s7K2MknCSdFIas/fsZvZo7MYk62Mi\n';
+s += '/+XdA6aAe27Y2zv15yQrRK6IDt14MhSe/YdmeHbCGJSCoEv0MszmArxXdE/mwUzU\n';
+s += 'pfA02io4A7Ca3jk0A2DSdMq//41nsbMaAfrwAqkcG9Esta+f+a3JUELR/fhes8GI\n';
+s += 'bP0ktX0cfrvLomRnMZQDkpoX4WyKltDlhu6DzWWqcEmU4UY6W/tyygqu7SncBgEb\n';
+s += 'AgMBAAGjggFMMIIBSDCBoQYDVR0jBIGZMIGWgBQuSasniujIr5d1N96LdLskDg0n\n';
+s += 'X6F7pHkwdzELMAkGA1UEBhMCS1IxHjAcBgNVBAoMFVNvZnRmb3J1bSBDb3Jwb3Jh\n';
+s += 'dGlvbjEhMB8GA1UEAwwYU29mdGZvcnVtIFJvb3QgQXV0aG9yaXR5MSUwIwYJKoZI\n';
+s += 'hvcNAQkBFhZjYW1hc3RlckBzb2Z0Zm9ydW0uY29tggEHMB0GA1UdDgQWBBSZN/jz\n';
+s += '1EA840uq/zqe5iK0/JnhLzAOBgNVHQ8BAf8EBAMCBLAwCQYDVR0TBAIwADBoBgNV\n';
+s += 'HR8EYTBfMF2gW6BZhldsZGFwOi8vbGRhcC5zb2Z0Zm9ydW0uY28ua3I6Mzg5L2Nu\n';
+s += 'PXNlLG89c29mdGZvcnVtLGM9a3I/Y2VydGlmaWNhdGVSZXZvY2F0aW9ubGlzdDti\n';
+s += 'aW5hcnkwDQYJKoZIhvcNAQELBQADggEBACxQULjOnWcUJ/O8NG+fVnqHIZ1rFwbo\n';
+s += 'q2uDAyaeJa4fazICJXcA+pkipRbDwAsTplUkRy3aUvqniJgH9irIAluSUNUCNr9V\n';
+s += 'S7ONi0kMqW7KCqyBe/TU2sVhKerTcKYr0jr6o27/DCHpwr7iF35nr31OzynmR3oj\n';
+s += 'nJMZouzckGXeHc3bOc3xp9vlXCEpFFUruPtztdTMq8DiPNbCBU5RWC7fbG9++012\n';
+s += 'VMFJdNfK2N8nfBS1WMEgxgBVYHtFdJOAO75rXcusq7CuYNb0T/atw0i9LLOUWwAH\n';
+s += 'i5DV42lPU3fCf1TluuYsx/t2vxnH5CFlyVAsxh+ZyItfP1U6ThEv4+U=\n';
+s += '-----END CERTIFICATE-----\n';
+s += '';
+
+
+AnySignProp.aServerCert      = s;   
+AnySignProp.aHostNameForFcms = "https://www.iros.go.kr";  
+AnySignProp.aPortForFcms     = "443";     
+
+if(AnySignProp.aPort == "") {
+    AnySignProp.aHostName = document.location.hostname;
+} else {
+    AnySignProp.aHostName = document.location.host;
+}
+//PKI타입에 따른 인증서 선택창 표시 대상 목록 지정 (대민:기본-전체인증서 표시함)
+AnySign.setPkiType4Sign("ALL"); //NPKI:NPKI인증서목록, NPKI2:(NPKI + RPKI)인증서목록, RPKI:RPKI인증서목록, GPKI:GPKI인증서목록, ALL:전체인증서목록
+
+
+
+</script>
+
+
+
+
+
+<script type="text/javascript" src="/websquare/externalJS/jquery/jquery-1.10.2.min.js"></script>
+<script type="text/javascript" src="/solution/inca/pluginfree/js/nppfs-1.13.0.js" charset="utf-8"></script>
+
+
+<script type="text/javascript" src="/websquare/externalJS/CryptoJS/components/core.js"></script>
+<script type="text/javascript" src="/websquare/externalJS/CryptoJS/components/enc-base64.js"></script>
+<script type="text/javascript" src="/websquare/externalJS/CryptoJS/components/cipher-core.js"></script>
+<script type="text/javascript" src="/websquare/externalJS/CryptoJS/components/aes.js"></script>
+
+
+
+<script type="text/javascript" src="/solution/raonnx/cmn/TouchEnNx.js?ver=20251204" charset="utf-8"></script>
+<script type="text/javascript" src="/solution/raonnx/cmn/TouchEnNx_exproto.js" charset="utf-8"></script>
+<script type="text/javascript" src="/solution/raonnx/cmn/TouchEnNx_install.js" charset="utf-8"></script>
+<script type="text/javascript" src="/solution/raonnx/cmn/TouchEnNx_daemon.js" charset="utf-8"></script>
+
+<script type="text/javascript" src="/solution/raonnx/nxKey/js/nxkey_config.js?ver=20251204" charset="utf-8"></script>
+<script type="text/javascript" src="/solution/raonnx/nxKey/js/TouchEnNxKey_Interface.js" charset="utf-8"></script>
+<script type="text/javascript" src="/solution/raonnx/nxKey/js/TouchEnNxKey.js" charset="utf-8"></script>
+<script type="text/javascript" src="/solution/raonnx/cmn/TouchEnNx_loader.js" charset="utf-8"></script>
+
+
+<script type="text/javascript" src="/solution/raon/transkey_mobile/transkey_mobile_config.js" charset="utf-8"></script>
+<script type="text/javascript" src="/solution/raon/transkey_mobile/transkey.js" charset="utf-8"></script>
+<link rel="stylesheet" type="text/css" href="/solution/raon/transkey_mobile/transkey.css" />
+
+<style>
+/* 가상키패드 css 추가 */
+.nppfs-elements{display:none !important;}
+</style>
+
+
+<!-- 
+<script type="text/javascript" src="http://map.vworld.kr/js/vworldMapInit.js.do?version=2.0&apiKey="></script>
+  -->
+<script type="text/javascript">
+
+    window.onload = init;
+
+    function init() {
+        try{
+        	//================================================================
+            // WebSquare.util.getTopWindow, $p.top override
+            //================================================================
+            overrideGetTopWindow();
+            
+            //================================================================
+            // logger check override
+            //================================================================
+            checkLogger();
+            
+
+            /* w3c 240603 tooltip hotfix*/
+            WebSquare.xfControl.prototype.setToolTipAfter = function(tooltipShow) {
+                var tooltip = this.options.tooltip || this.options.toolTip;
+                WebSquare.getBody().setToolTip(this.render, tooltip);
+                if (tooltipShow == false) {
+                    this.render.tooltipShow = false;
+                } else {
+                    this.render.tooltipShow = true;
+                }
+            };
+            WebSquare.uiplugin.input.prototype.setToolTip = WebSquare.xfControl.prototype.setToolTipAfter;
+            WebSquare.uiplugin.checkbox.prototype.setToolTip = WebSquare.xfControl.prototype.setToolTipAfter;
+            WebSquare.uiplugin.group.prototype.setToolTip = WebSquare.xfControl.prototype.setToolTipAfter;
+            WebSquare.uiplugin.iframe.prototype.setToolTip = WebSquare.xfControl.prototype.setToolTipAfter;
+            WebSquare.uiplugin.image.prototype.setToolTip = WebSquare.xfControl.prototype.setToolTipAfter;
+            WebSquare.uiplugin.basicInput.prototype.setToolTip = WebSquare.xfControl.prototype.setToolTipAfter;
+            WebSquare.uiplugin.inputCalendar.prototype.setToolTip = WebSquare.xfControl.prototype.setToolTipAfter;
+            WebSquare.uiplugin.multiselect.prototype.setToolTip = WebSquare.xfControl.prototype.setToolTipAfter;
+            WebSquare.uiplugin.output.prototype.setToolTip = WebSquare.xfControl.prototype.setToolTipAfter;
+            WebSquare.uiplugin.radio.prototype.setToolTip = WebSquare.xfControl.prototype.setToolTipAfter;
+            WebSquare.uiplugin.repeat.prototype.setToolTip = WebSquare.xfControl.prototype.setToolTipAfter;
+            WebSquare.uiplugin.searchbox.prototype.setToolTip = WebSquare.xfControl.prototype.setToolTipAfter;
+            WebSquare.uiplugin.selectbox.prototype.setToolTip = WebSquare.xfControl.prototype.setToolTipAfter;
+            WebSquare.uiplugin.selectbox_native.prototype.setToolTip = WebSquare.xfControl.prototype.setToolTipAfter;
+            WebSquare.uiplugin.textarea.prototype.setToolTip = WebSquare.xfControl.prototype.setToolTipAfter;
+            WebSquare.uiplugin.textbox.prototype.setToolTip = WebSquare.xfControl.prototype.setToolTipAfter;
+            WebSquare.uiplugin.treeview.prototype.setToolTip = WebSquare.xfControl.prototype.setToolTipAfter;
+            WebSquare.uiplugin.trigger.prototype.setToolTip = WebSquare.xfControl.prototype.setToolTipAfter;
+            WebSquare.uiplugin.wframe.prototype.setToolTip = WebSquare.xfControl.prototype.setToolTipAfter;
+            
+            WebSquare.startApplication(WebSquareExternal.w2xPath);
+            
+            
+        } catch(e) {
+            alert(e.message);
+        }
+    }
+    
+        
+    /**
+     * 함수명   : overrideGetTopWindow
+     * 함수설명 : window의 Scope을 조회하는 함수 override
+     *            - 서로다른 도메인이 iframe으로 구성되어 있는 경우 $p.top는 다른 도메인으로 접근할 수 있어 오류가 발생함. 
+     *            - $p.top, WebSquare.util.getTopWindow 메소드를 override하여 동일 도메인의 최상위 Scope조회로 변경
+     * 파라미터 : e : 이벤트 객체
+     * 리턴       : N/A
+     * 작성일  : 2022.09.01
+     * 작성자  : Inswave Systems
+     */
+    function overrideGetTopWindow () {
+      
+        WebSquare.util.getTopWindow = function() {
+            
+            console.log('최상위 scope 찾기');
+            
+            //================================================================
+            // 동일 도메인 최상위 window 찾기
+            //================================================================
+            var mainWin = window;
+            for (var i = 0 ; i < 100 ; i ++) {
+                try {
+                    if (mainWin.location.href == window.parent.location.href) {
+                        break;
+                    } else if (mainWin.location.host == window.parent.location.host){
+                        mainWin     = window.parent;
+                    } else {
+                        break;
+                    }
+                } catch(ex) {
+                    break;
+                }
+            }
+            
+            //================================================================
+            // 최상위 scope 조회
+            //================================================================
+            if (!WebSquare.strictMode) return mainWin;
+            
+            try {
+                return mainWin.WebSquare && mainWin.WebSquare.strictModeFrame ? mainWin.WebSquare.strictModeFrame.scope : mainWin
+            } catch (e) {
+                return mainWin;
+            }
+        };
+        
+        WebSquare.util.getTopWindow.getAttribute       = WebSquare.session.getAttribute;
+        WebSquare.util.getTopWindow.removeAttribute    = WebSquare.session.removeAttribute;
+        WebSquare.util.getTopWindow.removeSession      = WebSquare.session.removeSession;
+        WebSquare.util.getTopWindow.setAttribute       = WebSquare.session.setAttribute;
+        
+        $p.top = WebSquare.util.getTopWindow;
+  }
+    
+    /**
+     * 함수명   : overrideGetTopWindow
+     * 함수설명 : logAggregator.jsp 로그 체크 override
+     *            - 서로다른 도메인이 iframe으로 구성되어 있는 경우 $p.top는 다른 도메인으로 접근할 수 있어 오류가 발생함. 
+     *            - $p.top, WebSquare.util.getTopWindow 메소드를 override하여 동일 도메인의 최상위 Scope조회로 변경
+     * 파라미터 : e : 이벤트 객체
+     * 리턴       : N/A
+     * 작성일  : 2022.09.01
+     * 작성자  : Inswave Systems
+     */
+    function checkLogger () {
+         
+        WebSquare.logger.mprintLog = WebSquare.logger.printLog;
+        
+        WebSquare.logger.printLog = function(e) {
+            
+            if (e.indexOf('오류') != -1) {
+                
+                console.trace();
+                
+                var clientInfo  = "remotoAddr : 118.218.33.25,  remoteHost : 118.218.33.25, xForword : 118.218.33.25";
+                
+                e = e + '\n\[ERROR STACK]\n' + clientInfo + '\n' + new Error().stack;
+            }
+            
+            WebSquare.logger.mprintLog.apply(this, arguments);
+        }
+     }
+</script>
+</head>
+<body></body>
+</html>

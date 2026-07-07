@@ -533,9 +533,8 @@ public class IrosAutomation {
             found = this.executeSearchAndSelect(driver, address, aptUnit);
         }
         if (!found) {
-            this.logger.accept("\ud574\ub2f9 \ub3d9\ud638\uc218 \uacb0\uacfc\ub97c \ucc3e\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4: " + aptUnit);
-            this.logger.accept("\uc2a4\ud06c\ub9b0\uc0f7 \uc800\uc7a5\ub428. \ube0c\ub77c\uc6b0\uc800 \ucc3d\uc744 \ud655\uc778\ud574\uc8fc\uc138\uc694.");
-            return;
+            this.logger.accept("해당 동호수 결과를 찾지 못했습니다: " + aptUnit);
+            throw new RuntimeException("주소 검색 실패: " + aptUnit);
         }
         this.logger.accept("\uacb0\uacfc \uc120\ud0dd \uc644\ub8cc. \ub2e4\uc74c(1) \ud074\ub9ad...");
         Thread.sleep(1000L);
@@ -741,10 +740,6 @@ public class IrosAutomation {
                 this.duplicatePaymentRetried = true;
                 this.clearCartItems(driver);
                 Thread.sleep(500L);
-                String prevNav = this.getPageText(driver);
-                this.clickByTextAll(driver, "\ubd80\ub3d9\uc0b0 \uc5f4\ub78c·\ubc1c\uae09");
-                this.waitForPageChange(driver, prevNav, 7000);
-                Thread.sleep(2500L);
                 this.searchAndDownload(driver, wait, address);
                 return;
             } else if (afterMoveText.contains("\uacb0\uc81c\ub300\uc0c1 \ud655\uc778") || afterMoveText.contains("\uc7a5\ubc14\uad6c\ub2c8")) {
@@ -1281,26 +1276,23 @@ public class IrosAutomation {
             this.logger.accept("[\ub4f1\uae30\uae30\ub85d\uc720\ud615] \ub9d0\uc18c\uc0ac\ud56d\ud3ec\ud568 (\uae30\ubcf8\uac12)");
             return;
         }
-        Boolean result = (Boolean) driver.executeScript(
-            "var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);" +
-            "var node;" +
-            "while(node = walker.nextNode()) {" +
-            "  if (node.textContent.trim() === arguments[0]) {" +
-            "    var p = node.parentElement;" +
-            "    for (var d = 0; d < 5; d++) {" +
-            "      if (!p) break;" +
-            "      var rads = p.querySelectorAll('input[type=radio]');" +
-            "      if (rads.length > 0) { rads[0].click(); rads[0].dispatchEvent(new Event('change',{bubbles:true})); return true; }" +
-            "      if (p.closest) { var tr = p.closest('tr'); if (tr) { var r2 = tr.querySelectorAll('input[type=radio]'); if (r2.length > 0) { r2[0].click(); r2[0].dispatchEvent(new Event('change',{bubbles:true})); return true; } } }" +
-            "      p = p.parentElement;" +
-            "    }" +
-            "  }" +
-            "}" +
-            "return false;",
-            this.recordType
-        );
-        if (!Boolean.TRUE.equals(result)) {
-            this.clickByTextAll(driver, this.recordType);
+        boolean done = false;
+        for (WebElement sel : driver.findElements(By.tagName("select"))) {
+            try {
+                new Select(sel).selectByVisibleText(this.recordType);
+                done = true;
+                break;
+            } catch (Exception ignored) {}
+        }
+        if (done) {
+            try { Thread.sleep(200); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        } else {
+            this.clickByTextAll(driver, "말소사항포함");
+            try { Thread.sleep(400); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+            if (!this.clickByTextAll(driver, this.recordType)) {
+                this.logger.accept("[등기기록유형] 경고: 선택 실패 - 기본값 사용됨");
+                return;
+            }
         }
         this.logger.accept("[\ub4f1\uae30\uae30\ub85d\uc720\ud615] \uc120\ud0dd \uc644\ub8cc");
     }

@@ -1,0 +1,1 @@
+INDEX VERSION 1.134+C:\Users\FAMILY\realestate-automation\src\main\java\com\realestateauto\.metadata\.plugins\org.eclipse.jdt.core

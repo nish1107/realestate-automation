@@ -46,7 +46,7 @@ public class RegistryService {
 
     private void saveFailedLog(String address, String savePath, List<String> logBuffer, Exception e, Consumer<String> logger) {
         try {
-            File failDir = new File(savePath, "실패로그");
+            File failDir = new File("실패로그").getAbsoluteFile();
             failDir.mkdirs();
 
             String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));

@@ -477,17 +477,30 @@ public class IrosAutomation {
             textLenAfter = afterSearchText.length();
             this.logger.accept("[P2재시도결과] 차=" + (textLenAfter - textLenBefore));
         }
-        // WebSquare \uadf8\ub9ac\ub4dc \ub80c\ub354\ub9c1 \ub300\uae30: JS innerText\ub85c \ud14d\uc2a4\ud2b8 \uac10\uc9c0 (\ucd5c\ub300 12\ucd08)
-        long gridWaitEnd = System.currentTimeMillis() + 12000;
+        // WebSquare 그리드 렌더링 대기: 등기유형 키워드(집합건물/토지/건물)로 실제 결과 감지 (최대 12초)
+        long gridWaitStart = System.currentTimeMillis();
+        long gridWaitEnd = gridWaitStart + 12000;
+        boolean gridFound = false;
         while (System.currentTimeMillis() < gridWaitEnd) {
             Boolean hasContent = (Boolean) driver.executeScript(
                 "var trs=document.querySelectorAll('tr');" +
                 "for(var i=0;i<trs.length;i++){" +
-                "  if(trs[i].querySelector('td') && (trs[i].innerText||trs[i].textContent||'').trim().length>5) return true;" +
+                "  if(trs[i].querySelectorAll('td').length>=3){" +
+                "    var t=(trs[i].innerText||trs[i].textContent||'');" +
+                "    if(t.indexOf('집합건물')>=0||t.indexOf('토지')>=0||t.indexOf('건물')>=0) return true;" +
+                "  }" +
                 "}" +
                 "return false;");
-            if (Boolean.TRUE.equals(hasContent)) { this.logger.accept("[\uadf8\ub9ac\ub4dc] \uacb0\uacfc \ud14d\uc2a4\ud2b8 \uac10\uc9c0 (JS)"); break; }
+            if (Boolean.TRUE.equals(hasContent)) {
+                long elapsed = System.currentTimeMillis() - gridWaitStart;
+                this.logger.accept("[그리드] 등기유형 감지 (" + elapsed + "ms 경과)");
+                gridFound = true;
+                break;
+            }
             Thread.sleep(500L);
+        }
+        if (!gridFound) {
+            this.logger.accept("[그리드] 12초 내 감지 실패 - 그냥 진행");
         }
         this.logger.accept("동호수 매칭: " + aptUnit);
         boolean sel = false;

@@ -52,6 +52,12 @@ task testBuilding(type: JavaExec) {
     systemProperty 'file.encoding', 'UTF-8'
 }
 
+task testPdfPipeline(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.realestateauto.TestPdfPipeline'
+    systemProperty 'file.encoding', 'UTF-8'
+}
+
 jar {
     manifest {
         attributes 'Main-Class': 'com.realestateauto.MainApp'

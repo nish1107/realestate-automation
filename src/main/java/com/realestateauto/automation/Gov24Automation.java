@@ -2485,6 +2485,39 @@ public class Gov24Automation {
         long end = System.currentTimeMillis() + 90000;
         while (System.currentTimeMillis() < end) {
             String pageText = getPageText(driver);
+            // CAPTCHA 감지: 신청 후 로봇 확인 숫자 입력 화면
+            if (pageText.contains("로봇이 아님을 확인")) {
+                logger.accept("[CAPTCHA] 숫자를 입력하고 확인 버튼을 눌러주세요!");
+                long captchaEnd = System.currentTimeMillis() + 120000;
+                while (System.currentTimeMillis() < captchaEnd) {
+                    Thread.sleep(1000);
+                    try {
+                        String ct = getPageText(driver);
+                        if (ct.length() > 50 && !ct.contains("로봇이 아님을 확인")) {
+                            logger.accept("[CAPTCHA] 완료 - 신청하기 클릭 시도");
+                            Thread.sleep(500);
+                            try {
+                                List<WebElement> submitBtns = driver.findElements(By.xpath(
+                                    "//button[normalize-space(.)='신청하기'] | " +
+                                    "//input[@type='button' and normalize-space(@value)='신청하기'] | " +
+                                    "//input[@type='submit' and normalize-space(@value)='신청하기']"));
+                                for (WebElement el : submitBtns) {
+                                    if (el.isDisplayed()) {
+                                        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", el);
+                                        logger.accept("[CAPTCHA] 신청하기 클릭 완료");
+                                        Thread.sleep(2000);
+                                        break;
+                                    }
+                                }
+                            } catch (Exception e2) {
+                                logger.accept("[CAPTCHA] 신청하기 클릭 실패: " + e2.getMessage());
+                            }
+                            break;
+                        }
+                    } catch (Exception ignored) { break; }
+                }
+                continue;
+            }
             String curUrl1 = "";
             try { curUrl1 = driver.getCurrentUrl(); } catch (Exception ignored) {}
             // 결과 페이지 판단: 서비스 개요 페이지(신청방법/신청자격)는 제외
@@ -2570,7 +2603,7 @@ public class Gov24Automation {
                         // 1순위: CDP Page.printToPDF → PDF 파일 저장
                         try {
                             Map<String, Object> pdfParams = new HashMap<>();
-                            pdfParams.put("landscape", false);
+                            pdfParams.put("landscape", true);
                             pdfParams.put("displayHeaderFooter", false);
                             pdfParams.put("printBackground", true);
                             pdfParams.put("preferCSSPageSize", true);

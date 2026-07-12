@@ -45,7 +45,7 @@
                   style="-fx-padding: 2 0 0 2;">
                 <Label text="건축물대장 주소:" style="-fx-font-size: 12px; -fx-text-fill: #555;"/>
                 <RadioButton fx:id="roadNameRadio" text="도로명"/>
-                <RadioButton fx:id="jibunRadio" text="지번"/>
+                <RadioButton fx:id="jibunRadio" text="지번" disable="true" opacity="0.4"/>
             </HBox>
             <HBox fx:id="buildingSaveTypeBox" spacing="12" alignment="CENTER_LEFT"
                   visible="false" managed="false"

@@ -73,7 +73,7 @@ public class MainController {
     @FXML
     public void initialize() {
         String initSavePath = config.get("savePath").isEmpty()
-                ? System.getProperty("user.home") + "\\Desktop\\부동산서류"
+                ? System.getProperty("user.home") + "\\Downloads"
                 : config.get("savePath");
         logDir = new File(initSavePath, "logs");
         logDir.mkdirs();
@@ -92,7 +92,7 @@ public class MainController {
         serveIdField.setText(config.get("serve.id"));
         servePasswordField.setText(config.get("serve.password"));
         savePathField.setText(config.get("savePath").isEmpty()
-                ? System.getProperty("user.home") + "\\Desktop\\부동산서류"
+                ? System.getProperty("user.home") + "\\Downloads"
                 : config.get("savePath"));
 
         malsoRadio.setToggleGroup(registryTypeGroup);
@@ -109,11 +109,7 @@ public class MainController {
 
         roadNameRadio.setToggleGroup(addressTypeGroup);
         jibunRadio.setToggleGroup(addressTypeGroup);
-        if ("지번".equals(config.get("gov24.addressType"))) {
-            jibunRadio.setSelected(true);
-        } else {
-            roadNameRadio.setSelected(true);
-        }
+        roadNameRadio.setSelected(true);
         buildingCheck.selectedProperty().addListener((obs, old, val) -> {
             addressTypeBox.setVisible(val);
             addressTypeBox.setManaged(val);

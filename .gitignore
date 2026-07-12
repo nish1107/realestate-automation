@@ -11,3 +11,12 @@ src/main/java/com/realestateauto/TestRun.java
 src/main/java/com/realestateauto/TestBuilding.java
 # 로그 파일
 *.log
+# 빌드 결과물 및 배포 패키지 (git 추적 불필요)
+dist-package/
+dist-package-v*/
+jpackage-input/
+custom-jre/
+javafx-win/
+# Chrome 프로파일 (개인 데이터)
+iros-chrome-profile/
+gov24-chrome-profile*/

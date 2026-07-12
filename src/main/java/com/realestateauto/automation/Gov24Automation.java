@@ -2483,6 +2483,8 @@ public class Gov24Automation {
                 "  var rect = b.getBoundingClientRect();" +
                 "  if (rect.width === 0 && rect.height === 0) return;" +
                 "  if (b.tagName === 'A' && b.hostname && b.hostname !== window.location.hostname) return;" +
+                "  var oc = (b.getAttribute('onclick') || '');" +
+                "  if (/twitter|x\\.com|facebook|instagram|kakao|window\\.open/i.test(oc)) return;" +
                 "  var t = (b.innerText || b.textContent || '').trim();" +
                 "  if (t === '닫기' || t === '확인' || t === '×' || t === 'X' || t === 'close' || t === '오늘 하루 보지 않기') {" +
                 "    b.click();" +

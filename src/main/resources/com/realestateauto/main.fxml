@@ -47,6 +47,12 @@
                 <RadioButton fx:id="roadNameRadio" text="도로명"/>
                 <RadioButton fx:id="jibunRadio" text="지번"/>
             </HBox>
+            <HBox fx:id="buildingSaveTypeBox" spacing="12" alignment="CENTER_LEFT"
+                  visible="false" managed="false"
+                  style="-fx-padding: 2 0 0 2;">
+                <CheckBox fx:id="buildingManualCheck" text="직접저장 (진본서명 필요시)"
+                          style="-fx-font-size: 12px;"/>
+            </HBox>
         </VBox>
 
         <HBox spacing="10">

@@ -29,7 +29,13 @@ public class Gov24Automation {
     private final String savePath;
     private final String addressType; // "도로명" or "지번"
     private final Consumer<String> logger;
+    private boolean manualMode = false;
+    private Runnable mbusterAlertCallback = null;
     private String currentAddress = "";
+
+    private static class MbusterRetryException extends RuntimeException {
+        MbusterRetryException() { super("Mbuster 보안검증 감지 - 재시도"); }
+    }
 
     public Gov24Automation(String id, String password, String savePath, Consumer<String> logger) {
         this(id, password, savePath, "도로명", logger);
@@ -41,6 +47,14 @@ public class Gov24Automation {
         this.savePath = savePath;
         this.addressType = (addressType != null && !addressType.isEmpty()) ? addressType : "도로명";
         this.logger = logger;
+    }
+
+    public void setManualMode(boolean manualMode) {
+        this.manualMode = manualMode;
+    }
+
+    public void setMbusterAlertCallback(Runnable callback) {
+        this.mbusterAlertCallback = callback;
     }
 
     public void download(String address) throws Exception {
@@ -59,6 +73,9 @@ public class Gov24Automation {
         options.addArguments("--disable-blink-features=AutomationControlled");
         options.setExperimentalOption("excludeSwitches", Arrays.asList("enable-automation"));
         options.setExperimentalOption("useAutomationExtension", false);
+        if (manualMode) {
+            options.setExperimentalOption("detach", true);
+        }
 
         Map<String, Object> prefs = new HashMap<>();
         prefs.put("download.default_directory", new File(savePath).getAbsolutePath());
@@ -270,16 +287,31 @@ public class Gov24Automation {
         }
         logger.accept("로그인 확인됨.");
 
-        logger.accept("건축물대장 서비스 이동 중...");
-        navigateToBuildingService(driver);
-        logger.accept("주소 검색: " + parts.buildingAddress + " [" + addressType + "]");
-        boolean success = fillBuildingForm(driver, parts, "집합");
-        if (!success) {
-            logger.accept("[재시도] 집합 대장구분 검색 실패 - 일반으로 재시도...");
-            navigateToBuildingService(driver);
-            boolean success2 = fillBuildingForm(driver, parts, "일반");
-            if (!success2) {
-                logger.accept("[최종실패] 집합/일반 모두 실패: " + parts.buildingAddress);
+        int mbusterAttempts = 0;
+        boolean mbusterRetry = true;
+        while (mbusterRetry) {
+            mbusterRetry = false;
+            try {
+                logger.accept("건축물대장 서비스 이동 중...");
+                navigateToBuildingService(driver);
+                logger.accept("주소 검색: " + parts.buildingAddress + " [" + addressType + "]");
+                boolean success = fillBuildingForm(driver, parts, "집합");
+                if (!success) {
+                    logger.accept("[재시도] 집합 대장구분 검색 실패 - 일반으로 재시도...");
+                    navigateToBuildingService(driver);
+                    boolean success2 = fillBuildingForm(driver, parts, "일반");
+                    if (!success2) {
+                        logger.accept("[최종실패] 집합/일반 모두 실패: " + parts.buildingAddress);
+                    }
+                }
+            } catch (MbusterRetryException e) {
+                if (mbusterAttempts < 1) {
+                    mbusterAttempts++;
+                    mbusterRetry = true;
+                    logger.accept("[보안] 보안검증 완료. 처음부터 재시도 중... (1/1)");
+                } else {
+                    logger.accept("[보안] 재시도 횟수 초과. 수동으로 진행해주세요.");
+                }
             }
         }
     }
@@ -2520,6 +2552,14 @@ public class Gov24Automation {
             }
             String curUrl1 = "";
             try { curUrl1 = driver.getCurrentUrl(); } catch (Exception ignored) {}
+            // Mbuster 보안검증 페이지 감지 → 팝업 후 재시도
+            if (curUrl1.contains("mbuster") || curUrl1.contains("Mbuster")) {
+                logger.accept("[보안] Mbuster 보안검증 페이지 감지 - 브라우저에서 검증을 완료해주세요.");
+                if (mbusterAlertCallback != null) {
+                    mbusterAlertCallback.run();
+                }
+                throw new MbusterRetryException();
+            }
             // 결과 페이지 판단: 서비스 개요 페이지(신청방법/신청자격)는 제외
             boolean isServiceOverview = pageText.contains("신청방법") && pageText.contains("신청자격") && pageText.contains("서비스 개요");
             boolean onResultPage = !isServiceOverview && (
@@ -2593,152 +2633,70 @@ public class Gov24Automation {
                         String newUrl = driver.getCurrentUrl();
                         logger.accept("새 탭 URL: " + newUrl);
                         saveScreenshot(driver, "gov24_download_tab");
-                        try {
-                            Thread.sleep(5000); // iframe + PDF.js 완전 로드 대기
-                            saveScreenshot(driver, "gov24_before_extract");
 
-                            // iframe으로 전환
-                            driver.switchTo().frame(0);
-
-                            // --- 방법 1: PDFViewerApplication.pdfDocument.getData() ---
-                            // PDF.js가 메모리에 보유한 원본 PDF 바이너리를 직접 추출
-                            String rawPdfB64 = null;
+                        if (manualMode) {
+                            // 수동저장 모드: detach:true로 Chrome 유지, Selenium만 종료
+                            logger.accept("[건축물대장] 뷰어 열림 - 인쇄 버튼 클릭 후 PDF로 저장해주세요.");
+                            pdfSaved = true;
+                        } else {
+                            // 자동저장 모드: PDF.js에서 getData()로 원본 PDF 추출
                             try {
-                                driver.executeScript(
-                                    "window.__pdfRaw=null; window.__pdfRawErr=null;" +
-                                    "if(typeof PDFViewerApplication!=='undefined' && PDFViewerApplication.pdfDocument){" +
-                                    "  PDFViewerApplication.pdfDocument.getData().then(function(d){" +
-                                    "    var b='',a=new Uint8Array(d);" +
-                                    "    for(var i=0;i<a.length;i++) b+=String.fromCharCode(a[i]);" +
-                                    "    window.__pdfRaw=btoa(b);" +
-                                    "  }).catch(function(e){window.__pdfRawErr='getData:'+e;});" +
-                                    "} else {" +
-                                    "  window.__pdfRawErr='PDFViewerApplication없음';" +
-                                    "}");
-                                long deadline = System.currentTimeMillis() + 10000;
-                                while (System.currentTimeMillis() < deadline) {
+                                Thread.sleep(5000);
+
+                                // iframe 내 PDF.js 로드 대기 (최대 15초)
+                                long iframeWait = System.currentTimeMillis() + 15000;
+                                while (System.currentTimeMillis() < iframeWait) {
+                                    Long fc = (Long) driver.executeScript(
+                                        "return document.querySelectorAll('iframe').length;");
+                                    if (fc != null && fc > 0) break;
                                     Thread.sleep(500);
-                                    Object raw = driver.executeScript("return window.__pdfRaw;");
-                                    Object err = driver.executeScript("return window.__pdfRawErr;");
-                                    if (raw != null) { rawPdfB64 = (String) raw; break; }
-                                    if (err != null) { logger.accept("[PDF] getData 실패: " + err); break; }
                                 }
-                            } catch (Exception e1) {
-                                logger.accept("[PDF] getData 예외: " + e1.getMessage());
-                            }
+                                driver.switchTo().frame(0);
 
-                            // --- 방법 2: canvas 캡처 (방법 1 실패 시) ---
-                            String canvasJson = null;
-                            if (rawPdfB64 == null) {
-                                // canvas 렌더링 완료 대기 (최대 15초)
-                                long waitEnd = System.currentTimeMillis() + 15000;
-                                while (System.currentTimeMillis() < waitEnd) {
-                                    Long cnt = (Long) driver.executeScript(
-                                        "return document.querySelectorAll('canvas').length;");
-                                    if (cnt != null && cnt > 0) break;
-                                    Thread.sleep(1000);
-                                }
-                                // 각 페이지 canvas를 JPEG로 추출
-                                canvasJson = (String) driver.executeScript(
-                                    "var pages=document.querySelectorAll('.page');" +
-                                    "var result=[];" +
-                                    "if(pages.length>0){" +
-                                    "  for(var i=0;i<pages.length;i++){" +
-                                    "    var c=pages[i].querySelector('canvas');" +
-                                    "    if(c&&c.width>100) result.push({data:c.toDataURL('image/jpeg',0.92),w:c.width,h:c.height});" +
-                                    "  }" +
-                                    "} else {" +
-                                    "  var cs=document.querySelectorAll('canvas');" +
-                                    "  for(var i=0;i<cs.length;i++){" +
-                                    "    if(cs[i].width>100&&cs[i].height>100) result.push({data:cs[i].toDataURL('image/jpeg',0.92),w:cs[i].width,h:cs[i].height});" +
-                                    "  }" +
-                                    "}" +
-                                    "return JSON.stringify(result);");
-                                int pg = countJsonField(canvasJson, "\"data\"");
-                                logger.accept("[PDF] canvas 캡처: " + pg + "개 페이지");
-                            }
-
-                            driver.switchTo().defaultContent();
-
-                            // --- 방법 1 결과 저장 ---
-                            String safeAddr = currentAddress.replaceAll("[\\\\/:*?\"<>|]", "_").trim();
-                            if (safeAddr.isEmpty()) safeAddr = "건축물대장";
-                            String pdfFileName = savePath + java.io.File.separator + safeAddr + ".pdf";
-
-                            if (rawPdfB64 != null) {
-                                byte[] pdfBytes = java.util.Base64.getDecoder().decode(rawPdfB64);
-                                if (pdfBytes.length > 4 && pdfBytes[0] == '%' && pdfBytes[1] == 'P') {
-                                    try (java.io.FileOutputStream fos = new java.io.FileOutputStream(pdfFileName)) {
-                                        fos.write(pdfBytes);
-                                    }
-                                    logger.accept("[PDF] 원본 PDF 저장: " + pdfFileName + " (" + pdfBytes.length + " bytes)");
-                                    pdfSaved = true;
-                                } else {
-                                    logger.accept("[PDF] 원본 시그니처 오류, canvas 방법으로 전환");
-                                    rawPdfB64 = null;
-                                }
-                            }
-
-                            // --- 방법 2: canvas → A4 HTML → printToPDF ---
-                            if (!pdfSaved && canvasJson != null && canvasJson.startsWith("[{")) {
-                                // 새 탭 열기
-                                driver.executeScript("window.open('about:blank','_pdfbuild');");
-                                Thread.sleep(500);
-                                String buildHandle = null;
-                                for (String h : driver.getWindowHandles()) {
-                                    if (!h.equals(mainHandle) && !h.equals(viewerHandle)) {
-                                        buildHandle = h;
-                                        break;
-                                    }
-                                }
-                                if (buildHandle != null) {
-                                    driver.switchTo().window(buildHandle);
-                                    // A4 landscape HTML 구성 (canvas당 1페이지)
+                                String rawPdfB64 = null;
+                                try {
                                     driver.executeScript(
-                                        "var d=" + canvasJson + ";" +
-                                        "var h='<html><head><style>" +
-                                        "*{margin:0;padding:0;box-sizing:border-box}" +
-                                        "body{background:white}" +
-                                        ".pg{width:297mm;height:210mm;page-break-after:always;" +
-                                        "page-break-inside:avoid;overflow:hidden;display:flex;" +
-                                        "align-items:center;justify-content:center;background:white}" +
-                                        ".pg img{width:100%;height:100%;object-fit:fill}" +
-                                        "@page{size:A4 landscape;margin:0}" +
-                                        "</style></head><body>';" +
-                                        "for(var i=0;i<d.length;i++) h+='<div class=\"pg\"><img src=\"'+d[i].data+'\"/></div>';" +
-                                        "h+='</body></html>';" +
-                                        "document.open();document.write(h);document.close();");
-                                    Thread.sleep(1000);
-                                    // A4 landscape PDF 생성
-                                    Map<String, Object> pdfParams = new HashMap<>();
-                                    pdfParams.put("printBackground", true);
-                                    pdfParams.put("preferCSSPageSize", true);
-                                    pdfParams.put("landscape", true);
-                                    pdfParams.put("paperWidth", 11.69);
-                                    pdfParams.put("paperHeight", 8.27);
-                                    pdfParams.put("marginTop", 0.0);
-                                    pdfParams.put("marginBottom", 0.0);
-                                    pdfParams.put("marginLeft", 0.0);
-                                    pdfParams.put("marginRight", 0.0);
-                                    @SuppressWarnings("unchecked")
-                                    Map<String, Object> pdfResult = (Map<String, Object>) driver.executeCdpCommand("Page.printToPDF", pdfParams);
-                                    String b64 = (String) pdfResult.get("data");
-                                    byte[] pdfBytes = java.util.Base64.getDecoder().decode(b64);
-                                    try (java.io.FileOutputStream fos = new java.io.FileOutputStream(pdfFileName)) {
-                                        fos.write(pdfBytes);
+                                        "window.__pdfRaw=null; window.__pdfRawErr=null;" +
+                                        "if(typeof PDFViewerApplication!=='undefined' && PDFViewerApplication.pdfDocument){" +
+                                        "  PDFViewerApplication.pdfDocument.getData().then(function(d){" +
+                                        "    var b='',a=new Uint8Array(d);" +
+                                        "    for(var i=0;i<a.length;i++) b+=String.fromCharCode(a[i]);" +
+                                        "    window.__pdfRaw=btoa(b);" +
+                                        "  }).catch(function(e){window.__pdfRawErr=''+e;});" +
+                                        "} else { window.__pdfRawErr='PDFViewerApplication없음'; }");
+                                    long deadline = System.currentTimeMillis() + 10000;
+                                    while (System.currentTimeMillis() < deadline) {
+                                        Thread.sleep(500);
+                                        Object raw = driver.executeScript("return window.__pdfRaw;");
+                                        Object err = driver.executeScript("return window.__pdfRawErr;");
+                                        if (raw != null) { rawPdfB64 = (String) raw; break; }
+                                        if (err != null) { logger.accept("[PDF] getData 실패: " + err); break; }
                                     }
-                                    int pgCount = countJsonField(canvasJson, "\"data\"");
-                                    logger.accept("[PDF] canvas→PDF 저장: " + pdfFileName + " (" + pdfBytes.length + " bytes, " + pgCount + "페이지)");
-                                    pdfSaved = true;
-                                    try { driver.close(); } catch (Exception ignored3) {}
+                                } catch (Exception e1) {
+                                    logger.accept("[PDF] getData 예외: " + e1.getMessage());
                                 }
-                            }
 
-                        } catch (Exception pdfEx) {
-                            logger.accept("[PDF] 실패: " + pdfEx.getMessage());
-                            try { driver.switchTo().defaultContent(); } catch (Exception ignored3) {}
+                                driver.switchTo().defaultContent();
+
+                                if (rawPdfB64 != null) {
+                                    byte[] pdfBytes = java.util.Base64.getDecoder().decode(rawPdfB64);
+                                    if (pdfBytes.length > 4 && pdfBytes[0] == '%' && pdfBytes[1] == 'P') {
+                                        String safeAddr = currentAddress.replaceAll("[\\\\/:*?\"<>|]", "_").trim();
+                                        if (safeAddr.isEmpty()) safeAddr = "건축물대장";
+                                        String pdfFileName = savePath + java.io.File.separator + safeAddr + ".pdf";
+                                        try (java.io.FileOutputStream fos = new java.io.FileOutputStream(pdfFileName)) {
+                                            fos.write(pdfBytes);
+                                        }
+                                        logger.accept("[PDF] 저장 완료: " + pdfFileName + " (" + pdfBytes.length + " bytes)");
+                                        pdfSaved = true;
+                                    }
+                                }
+                            } catch (Exception pdfEx) {
+                                logger.accept("[PDF] 실패: " + pdfEx.getMessage());
+                                try { driver.switchTo().defaultContent(); } catch (Exception ignored3) {}
+                            }
+                            try { driver.switchTo().window(mainHandle); } catch (Exception ignored2) {}
                         }
-                        try { driver.switchTo().window(mainHandle); } catch (Exception ignored2) {}
                     }
                     if (!pdfSaved && viewerHandle != null) {
                         logger.accept("건축물대장 뷰어 열림. PDF 자동저장 실패 - dbg_gov24_download_tab.png 확인");

@@ -17,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -38,6 +39,8 @@ public class MainController {
     @FXML private HBox addressTypeBox;
     @FXML private RadioButton roadNameRadio;
     @FXML private RadioButton jibunRadio;
+    @FXML private HBox buildingSaveTypeBox;
+    @FXML private CheckBox buildingManualCheck;
     @FXML private Button downloadBtn;
     @FXML private Button serveBtn;
     @FXML private TextArea logArea;
@@ -114,6 +117,8 @@ public class MainController {
         buildingCheck.selectedProperty().addListener((obs, old, val) -> {
             addressTypeBox.setVisible(val);
             addressTypeBox.setManaged(val);
+            buildingSaveTypeBox.setVisible(val);
+            buildingSaveTypeBox.setManaged(val);
         });
     }
 
@@ -171,8 +176,33 @@ public class MainController {
                 if (buildingCheck.isSelected()) {
                     String addrType = jibunRadio.isSelected() ? "지번" : "도로명";
                     config.set("gov24.addressType", addrType);
-                    log("=== 건축물대장 다운로드 시작 [" + addrType + "] ===");
-                    new BuildingService(config).download(address, savePath, this::log);
+                    boolean manual = buildingManualCheck.isSelected();
+                    log("=== 건축물대장 다운로드 시작 [" + addrType + (manual ? ", 직접저장" : ", 자동저장") + "] ===");
+                    Runnable mbusterAlert = () -> {
+                        CountDownLatch latch = new CountDownLatch(1);
+                        Platform.runLater(() -> {
+                            Alert alert = new Alert(Alert.AlertType.WARNING,
+                                    "보안 검증 페이지가 나타났습니다.\n브라우저에서 검증을 완료한 후 확인을 눌러주세요.\n\n확인 클릭 시 처음부터 자동으로 재시도합니다.",
+                                    ButtonType.OK);
+                            alert.setTitle("보안 검증 필요");
+                            alert.setHeaderText(null);
+                            alert.showAndWait();
+                            latch.countDown();
+                        });
+                        try { latch.await(120, TimeUnit.SECONDS); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+                    };
+                    new BuildingService(config).download(address, savePath, manual, mbusterAlert, this::log);
+                    if (manual) {
+                        Platform.runLater(() -> {
+                            Alert alert = new Alert(Alert.AlertType.INFORMATION,
+                                    "건축물대장 뷰어가 열렸습니다.\n\n뷰어의 인쇄 버튼을 클릭하여 PDF로 저장해주세요.\n저장 완료 후 브라우저를 직접 닫아주세요.",
+                                    ButtonType.OK);
+                            alert.setTitle("직접저장 안내");
+                            alert.setHeaderText(null);
+                            alert.getDialogPane().setPrefWidth(380);
+                            alert.showAndWait();
+                        });
+                    }
                 }
                 if (landCheck.isSelected()) {
                     log("=== 토지대장 다운로드 시작 ===");

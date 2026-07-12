@@ -14,6 +14,14 @@ public class BuildingService {
     }
 
     public void download(String address, String savePath, Consumer<String> logger) throws Exception {
+        download(address, savePath, false, logger);
+    }
+
+    public void download(String address, String savePath, boolean manualMode, Consumer<String> logger) throws Exception {
+        download(address, savePath, manualMode, null, logger);
+    }
+
+    public void download(String address, String savePath, boolean manualMode, Runnable mbusterAlert, Consumer<String> logger) throws Exception {
         String addressType = config.get("gov24.addressType");
         if (addressType == null || addressType.isEmpty()) addressType = "도로명";
         Gov24Automation automation = new Gov24Automation(
@@ -23,6 +31,8 @@ public class BuildingService {
                 addressType,
                 logger
         );
+        automation.setManualMode(manualMode);
+        automation.setMbusterAlertCallback(mbusterAlert);
         automation.download(address);
     }
 }

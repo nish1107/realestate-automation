@@ -295,13 +295,22 @@ public class Gov24Automation {
                 logger.accept("건축물대장 서비스 이동 중...");
                 navigateToBuildingService(driver);
                 logger.accept("주소 검색: " + parts.buildingAddress + " [" + addressType + "]");
-                boolean success = fillBuildingForm(driver, parts, "집합");
+                boolean success;
+                try {
+                    success = fillBuildingForm(driver, parts, "집합");
+                } catch (MbusterRetryException e) {
+                    throw e;
+                } catch (Exception e) {
+                    logger.accept("[재시도] 집합 예외 발생, 일반으로 재시도: " + e.getMessage());
+                    success = false;
+                }
                 if (!success) {
                     logger.accept("[재시도] 집합 대장구분 검색 실패 - 일반으로 재시도...");
                     navigateToBuildingService(driver);
                     boolean success2 = fillBuildingForm(driver, parts, "일반");
                     if (!success2) {
                         logger.accept("[최종실패] 집합/일반 모두 실패: " + parts.buildingAddress);
+                        throw new RuntimeException("건축물대장 주소를 찾을 수 없습니다: " + parts.buildingAddress);
                     }
                 }
             } catch (MbusterRetryException e) {
@@ -311,6 +320,7 @@ public class Gov24Automation {
                     logger.accept("[보안] 보안검증 완료. 처음부터 재시도 중... (1/1)");
                 } else {
                     logger.accept("[보안] 재시도 횟수 초과. 수동으로 진행해주세요.");
+                    throw new RuntimeException("Mbuster 보안검증 재시도 횟수 초과. 수동으로 진행해주세요.");
                 }
             }
         }
@@ -2655,22 +2665,35 @@ public class Gov24Automation {
 
                                 String rawPdfB64 = null;
                                 try {
-                                    driver.executeScript(
-                                        "window.__pdfRaw=null; window.__pdfRawErr=null;" +
-                                        "if(typeof PDFViewerApplication!=='undefined' && PDFViewerApplication.pdfDocument){" +
-                                        "  PDFViewerApplication.pdfDocument.getData().then(function(d){" +
-                                        "    var b='',a=new Uint8Array(d);" +
-                                        "    for(var i=0;i<a.length;i++) b+=String.fromCharCode(a[i]);" +
-                                        "    window.__pdfRaw=btoa(b);" +
-                                        "  }).catch(function(e){window.__pdfRawErr=''+e;});" +
-                                        "} else { window.__pdfRawErr='PDFViewerApplication없음'; }");
-                                    long deadline = System.currentTimeMillis() + 10000;
-                                    while (System.currentTimeMillis() < deadline) {
-                                        Thread.sleep(500);
-                                        Object raw = driver.executeScript("return window.__pdfRaw;");
-                                        Object err = driver.executeScript("return window.__pdfRawErr;");
-                                        if (raw != null) { rawPdfB64 = (String) raw; break; }
-                                        if (err != null) { logger.accept("[PDF] getData 실패: " + err); break; }
+                                    final int MAX_INJECT = 5;
+                                    for (int injectTry = 0; injectTry < MAX_INJECT && rawPdfB64 == null; injectTry++) {
+                                        if (injectTry > 0) {
+                                            logger.accept("[PDF] PDFViewerApplication 미준비, 2초 후 재시도 (" + injectTry + "/" + (MAX_INJECT - 1) + ")");
+                                            Thread.sleep(2000);
+                                        }
+                                        driver.executeScript(
+                                            "window.__pdfRaw=null; window.__pdfRawErr=null;" +
+                                            "if(typeof PDFViewerApplication!=='undefined' && PDFViewerApplication.pdfDocument){" +
+                                            "  PDFViewerApplication.pdfDocument.getData().then(function(d){" +
+                                            "    var b='',a=new Uint8Array(d);" +
+                                            "    for(var i=0;i<a.length;i++) b+=String.fromCharCode(a[i]);" +
+                                            "    window.__pdfRaw=btoa(b);" +
+                                            "  }).catch(function(e){window.__pdfRawErr='getData오류:'+e;});" +
+                                            "} else { window.__pdfRawErr='PDFViewerApplication없음'; }");
+                                        long deadline = System.currentTimeMillis() + 10000;
+                                        while (System.currentTimeMillis() < deadline) {
+                                            Thread.sleep(500);
+                                            Object raw = driver.executeScript("return window.__pdfRaw;");
+                                            Object err = driver.executeScript("return window.__pdfRawErr;");
+                                            if (raw != null) { rawPdfB64 = (String) raw; break; }
+                                            if (err != null) {
+                                                String errStr = (String) err;
+                                                if (errStr.equals("PDFViewerApplication없음")) break; // 재시도
+                                                logger.accept("[PDF] getData 실패: " + errStr);
+                                                injectTry = MAX_INJECT; // 실제 오류면 재시도 중단
+                                                break;
+                                            }
+                                        }
                                     }
                                 } catch (Exception e1) {
                                     logger.accept("[PDF] getData 예외: " + e1.getMessage());

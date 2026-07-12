@@ -2482,7 +2482,7 @@ public class Gov24Automation {
                 "document.querySelectorAll('button, a').forEach(function(b) {" +
                 "  var rect = b.getBoundingClientRect();" +
                 "  if (rect.width === 0 && rect.height === 0) return;" +
-                "  if (b.tagName === 'A' && b.hostname && b.hostname !== window.location.hostname) return;" +
+                "  if (b.tagName === 'A' && b.getAttribute('target') === '_blank') return;" +
                 "  var oc = (b.getAttribute('onclick') || '');" +
                 "  if (/twitter|x\\.com|facebook|instagram|kakao|window\\.open/i.test(oc)) return;" +
                 "  var t = (b.innerText || b.textContent || '').trim();" +

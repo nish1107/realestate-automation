@@ -342,6 +342,7 @@ public class MainController {
         if (logWriter != null) {
             try { logWriter.close(); } catch (IOException ignored) {}
         }
+        Platform.exit();
     }
 
     private void showAlert(String message) {
